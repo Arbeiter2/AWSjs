@@ -40,7 +40,9 @@ casper.then(function() {
 		if (f.count === undefined)
 			f.count = 1;
 		this.repeat(f.count, function() {
-			this.createFlights(f.from_icao_code, f.to_icao_code, f.fleet_type_id, null, null, function(obj) { results.push(obj); } );
+			//this.wait(1000, function() {
+				this.createFlights(f.from_icao_code, f.to_icao_code, f.fleet_type_id, null, null, function(obj) { results.push(obj); } );
+			//});
 			//console.log("results=\n"+JSON.stringify(results, null, 4));
 		});
 	});

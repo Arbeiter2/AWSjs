@@ -9,7 +9,7 @@ import time, re
 import shlex
 
 casperCommand = "/usr/local/lib/node_modules/casperjs/bin/casperjs --ssl-protocol=tlsv1"
-casperCommand = "c:/casperjs/bin/casperjs --ssl-protocol=tlsv1"
+casperCommand = "c:/casperjs/bin/casperjs"
 scriptPath = "/home/delano/js"
 scriptPath = "c:/js"
 executable = '/bin/bash'
@@ -39,6 +39,7 @@ def getGaps(path, game_id):
     command_line = ("{} "
         "{}/timetable_gaps.js "
         "--game_id={} --silent").format(casperCommand, scriptPath, game_id)
+    #print(command_line)
     (returncode, output) = runCommand(command_line)
     
 
@@ -102,6 +103,7 @@ def getUnassigned(game_id, unassigned, fleet_type_id, base_airport_iata,
                 "--aircraft-id={} " 
                 "--to={} ").format(casperCommand, scriptPath, game_id, 
                                    ac['aircraft_id'], base_airport_iata)
+            #print(command_line)
             (returncode, output) = runCommand(command_line)
 
             res = simplejson.loads(output)
@@ -173,18 +175,19 @@ for i in indexes:
         break
 
     timetable = gaps[i]
+    #print(timetable)
 
     # ignore timetables where nothing has been allocated yet
     if (timetable['unassignedCount'] == 7
-    or  timetable['unassignedCount'] == 0
-    or not ('model' in timetable['lastAircraft'])):
+    or  timetable['unassignedCount'] == 0):
+    #or not ('model' in timetable['lastAircraft'])):
         continue
 
     # ignore timetables where no seat config available
-    if timetable['lastAircraft']['model'] not in seat_config_map:
-        continue
+    #if timetable['lastAircraft']['model'] not in seat_config_map:
+    #    continue
 
-    seat_config_id = seat_config_map[timetable['lastAircraft']['model']]
+    seat_config_id = 0#seat_config_map[timetable['lastAircraft']['model']]
     
     # try looking in unassigned list first
     status, newAircraft = getUnassigned(game_id, unassigned, 
@@ -200,7 +203,7 @@ for i in indexes:
 
         #print(status, newAircraft)
         if newAircraft['error'] != '':
-            print(newAircraft['error'])
+            #print(newAircraft['error'])
             if newAircraft['error'] == "UAM unavailable":
                 UAMAvailable = False
                 continue

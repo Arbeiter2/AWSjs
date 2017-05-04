@@ -12,129 +12,17 @@ function usage()
 console.log(argv[0] + requiredArgs.join("\n") + "\n" +
 					  "--h\tthis message" + "\n" +
 					  "--base=<airport ICAO code>\n" +
-					  "--region=<region code> (NA|EU|AF|AS|SA|OC)\n" +
-					  "--level=<airport level>");
+					  "--region=<region code> (WO|NA|EU|AF|AS|SA|OC)\n" +
+					  "--max-range=<maximum range>\n" +
+					  "--level=<airport level>[+] (0=All|1=Insignificant|2=Small|3=Middle-size|4=Significant|5=Large");
 }
 
 var url = 'http://www.airwaysim.com/game/Routes/Planning/X/'; 
 var threshold = 60;
 var links = [];
 
-var icao_codes =  {
 
-"NA" : {
-	"1" : [
-	"KLAS", "KATL", "KIAH", "KMIA", "KSEA", "KEWR", "KMCO", "KMSP",
-	"KDTW", "KBOS", "KPHL", "KLGA", "KFLL", "KBWI", "KIAD", "KMDW",
-	"KSLC", "KDCA", "PHNL", "KSAN", "KTPA", "KPDX", "CYYZ", "CYUL",
-	"CYVR", "CYYC", "MMMX", "KJFK", "KLAX", "KSFO", "KORD", "KDEN",
-	"KPHX",
-	],
-
-	"2" : [
-	"KSTL", "KHOU", "KBNA", "KAUS", "KOAK", "KMCI", "KMSY", "KRDU", 
-	"KSJC", "KSNA", "KDAL", "KSMF", "TJSJ", "KSAT", "KRSW", "KPIT", 
-	"KCLE", "KIND", "KMKE", "KCMH", "PHOG", "KPBI", "KBDL", "KCVG", 
-	"KJAX", "PANC", "KBUF", "KABQ", "KONT", "KOMA", "KBUR", "CYEG",
-	"CYOW", "MMUN"
-	],
-
-	"3" : [
-	"TIST", "PAFA", "PHTO", "PHLI", "PHKO", "KOKC", "KMEM", "KPVD", 
-	"KRIC", "KSDF", "KRNO", "KTUS", "KCHS", "KORF", "KGEG", "KGUM", 
-	"KELP", "KBOI", "KTUL", "KLGB", "KBHM", "KALB", "KGRR", "KROC", 
-	"KDSM", "KDAY", "KSFB", "KMHT", "KLIT", "KSYR", "KPSP", "KGSP", 
-	"KSAV", "KMYR", "KGSO", "KTYS", "KPWM", "KMSN", "KCAK", "KPNS", 
-	"KICT", "KHPN", "KFAT", "KIWA", "KPIE", "KISP", "KMDT", "KCOS", 
-	"KXNA", "KBTV", "KSRQ", "KLEX", "KACY", "KCID", "KMAF", "KBLI", 
-	"KJAN", "KHSV", "KCAE", "KGSN", "KFSD", "KBZN", "KFAR", "KLBB", 
-	"KEUG", "KFNT", "KBIL", "KSGF", "KECP", "KMFE", "KEYW", "KAVL",
-	"MPTO", "MMSD", "KCLT",
-	],
-
-	"4" : [
-	"KBTR", "KILM", "KTTN", "PAJN", "KMLI", "KAMA", "KVPS", "KCHA", 
-	"KCRP", "KGCN", "KTLH", "KPGD", "KSBA", "KMSO", "KPSC", "KGPT", 
-	"KMFR", "KFWA", "KPIA", "KBGR", "KSBN", "KJAC", "KSHV", "KDAB", 
-	"KROA", "KGRB", "KABE", "KHRL", "KMOB", "KRAP", "KAGS", "KPHF", 
-	"KRDM", "KCHO", "KATW", "KBIS", "KLFT", "KCRW", "KFAY", "KGPI", 
-	"KMOT", "KASE", "KTRI", "KAVP", "KMLB", "KGJT", "KBQN", "KBVU", 
-	"KGNV", "KBMI", "KLAN",
-	]
-},
-
-"EU" : {
-	"1" : [
-	'EHAM', 'LFPG', 'UUDD', 'EIDW', 'EDDF', 'EGKK', 'EGLL', 'LEMD', 
-	'EGCC', 'EDDM', 'LIMC', 'UUEE', 'UUWW', 'LIRF',
-	],
-
-	"2" : [
-	'ESSA', 'EBBR', 'EDDK', 'EKCH', 'EBCI', 'EGPH', 'EGPF', 'LSGG', 
-	'EFHK', 'LIML', 'LPPT', 'EGGW', 'LFPO', 'ENGM', 'LKPR', 'EGSS', 
-	'EDDB', 'LOWW', 'LSZH', 'LGAV', 'LEBL',
-	],
-
-	"3" : [
-	'GCRR', 'LEMG', 'LRBS', 'EDDB', 'EGAA', 'EGBB', 'EGGD', 'LFSB', 
-	'LHBP', 'LFOB', 'LICC', 'EDLW', 'EDDL', 'EHEH', 'EGNX', 'LPFR', 
-	'GCFV', 'LIMJ', 'ESGG', 'EDDV', 'EDDH', 'EDFH', 'GCLP', 'EGGP', 
-	'LMML', 'LIRN', 'LFMN', 'EGNT', 'EGPK', 'LEPA', 'EINN', 'GCTS', 
-	'LEVC', 'EGPD', 'LYBE', 'LZIB', 'LDDU', 'LGIR', 'ULLI', 'LEMH', 
-	'LPPR', 'LGRP', 'EHRD', 'LGTS', 'LBSF', 'GCLA', 'LATI', 'EYVI', 
-	'EPWA', 'LDZA', 'LEIB', 'EDDS', 'GCXO', 'EDDT', 'LIPZ', 'EGLC', 
-	'LJLJ', 'ELLX', 'LROP', 'LYPR', 'EVRA', 'LQSA', 'EPWR', 'LIRA', 
-	],
-
-	"4" : [
-	'LIEA', 'LIME', 'LIPE', 'LIEE', 'LEGE', 'UKBB', 'EDLV', 'ESKN', 
-	'EICK', 'LICJ', 'LIRP', 'LICR', 'LEST', 'LICA', 'LIMF', 'LIPH', 
-	'LIPX', 'ENBR', 'LEBB', 'EKBI', 'LFBD', 'EGHH', 'LBBG', 'EDDW', 
-	'LIBD', 'LGSA', 'UKDD', 'EGCN', 'LIRQ', 'LPMA', 'LOWG', 'LGKO', 
-	'EGNM', 'LFBT', 'LEAM', 'LFQQ', 'LOWL', 'LELC', 'EGNV', 'LFMT', 
-	'LFML', 'UMMS', 'LFRS', 'UKOO', 'LIEO', 'LPPD', 'LBPD', 'LERS', 
-	'ENRY', 'UKFF', 'LWSK', 'EGHI', 'LDSP', 'ENZV', 'LEZL', 'LFST', 
-	'LOWS', 'EETN', 'LFBO', 'ENVA', 'ENTO', 'LRTR', 'LBWN', 'LGZA', 
-	'LEAL', 'LESO', 'LEGR', 'LECO', 'LFLL', 'GEML', 'LEAS', 'LEPP', 
-	'LEXJ', 'GCHI', 'LEVX', 'LEVT', 'LEVD', 'LEJR', 'LEZG', 
-	'GCGM', 'EDDN', 'URSS', 'LKTB', 'LGKR', 'EGBE', 'EDSB', 'EDDG', 
-	'LIPK', 'EPGD', 'ESGP', 'UKHH', 'LGMK', 'LGSR', 'BIKF', 'LUKK', 
-	'LOWK', 'EPKK', 'EPKT', 'UWWW', 'EDDP', 'URMM', 'EIKN', 'LKMT', 
-	'EDLP', 'EPPO', 'URRR', 'LGSM', 'EFTP', 'UWUU', 'LELN', 
-
-	],
-},
-
-"SA" : {
-	"1" : [
-	"SVMI", "SBSP", "SBCF", "SBCT", "SAEZ", "SBFZ", "SBGL", "SBGR",
-	"SPIM", "SBPA", "SBRF", "SCEL", "SBRJ", "SBSV", "SEQU", "SBKP",
-	]
-},
-
-"AS" : {
-	"1" : [
-	'VTBS', 'VHHH', 'WSSS', 'RJAA', 'RKSI', 'ZSPD', 'RCTP', 'RJBB', 
-	],
-	
-	"2" : [
-	'WMKK', 'OMDB', 'OTBD', 'ZBAA', 'WIII', 'RJTT', 'LTBA', 'VABB', 
-	'RPLL', 'VIDP', 'OEJN', 'LTAI', 'OERK', 'ROAH', 'LLBG', 
-	],
-	
-	"3" : [
-	'ZSSS', 'OIIE', 'RKPC', 'RJGG', 'LTAC', 'OPKC', 'VVTS', 'UTTT', 
-	'OYSN', 'ZSHC', 'ZLXY', 'RCKH', 'RKPK', 'ZJHK', 'VOMM', 'RCSS', 
-	'OBBI', 'ZUUU', 'ZGGG', 'ZGSZ', 'RJOO', 'RJFF', 'RJCC',
-	]
- },
- 
- };
-
-if (casper.cli.get("threshold"))
-	threshold = parseInt(casper.cli.get("threshold"));
-
-if (!casper.cli.get("region") || !casper.cli.get("level") || !casper.cli.get("base"))
+if (!casper.cli.has("region") || !casper.cli.has("level") || !casper.cli.has("base"))
 {
 	usage();
 	casper.exit(1);
@@ -150,43 +38,155 @@ if (!/^[A-Z]{4}$/.test(base_ICAO))
 
 // region
 var region = casper.cli.get("region").toUpperCase();
-if (icao_codes[region] === undefined)
+if (region.match(/^(WO|NA|EU|AF|AS|SA|OC)$/) === null)
 {
 	usage();
 	casper.exit(1);
 }
 
-// validate level numbers and create complete list of ICAO codes
+// level
+var levelStr = casper.cli.get("level").toString();
+if (levelStr.match(/^[0-5]\+?$/) === null)
+{
+	usage();
+	casper.exit(1);
+}
+var levels = [];
+if (levelStr[0] === "0")
+	levels = levelStr[0];
+else
+{
+	for (var i=parseInt(levelStr[0], 10); i <=5; i++)
+		levels.push('' + i);
+}
 
-var level_list = casper.cli.get("level").toString();
-var destination_codes =  [];
 
-s = level_list.split(",");
-
-for (i=0; i < s.length; i++)
-	if (icao_codes[region][s[i]] === undefined)
+// max-range
+var max_range = "0";
+if (casper.cli.has("max-range"))
+{
+	max_range = parseInt(casper.cli.get("max-range"));
+	if (max_range < 0)
 	{
 		usage();
 		casper.exit(1);
 	}
-	else
-	{
-		if (icao_codes[region][s[i]] !== undefined)
-			destination_codes = destination_codes.concat(icao_codes[region][s[i]]);
-	}
-
+}
 
 logMessage("INFO", "Base: "+base_ICAO);
 logMessage("INFO", "Region: "+region);
-logMessage("INFO", "Levels: "+s.join(", "));
+logMessage("INFO", "max_range: "+max_range);
+logMessage("INFO", "Levels: "+levels);
 
 // only do login check if all params available
 phantom.injectJs('login.js'); 
 
 var results = [];
 var seat_class = [ "Y", "C", "F" ];
+var pageNr = 0;
 
 
+casper.then(function() {
+	casper.each(levels, function(casper, level) {
+		casper.thenOpen("http://www.airwaysim.com/game/Routes/Planning/" + base_ICAO, function() {
+			this.waitUntilVisible('#airportSelectedTable_1_0 > div.borderOuter > div.borderInner.smallDataBox2 > table > thead > tr:nth-child(2) > td > a', 
+			
+			function() {
+				// fill in the form
+				this.evaluate(function(area) {
+					$('#Area_2_0').val(area).change();
+				}, region);
+				
+				this.fill('#searchForm2_0', {
+					'Size':    level,
+					'RangeMax':    max_range
+				}, false);		
+
+				//console.log(JSON.stringify(this.getFormValues('#searchForm2_0'), null, 4));
+				
+				this.thenClick('#airportSearch_2_0 > thead > tr:nth-child(2) > td.Bg3.alCenter > input[type="submit"]', function() {
+					this.waitForText('Number of results: ', function() {
+					resCount = this.fetchText('#airportSearchTable_2_0 > div.borderOuter > div.borderInner.smallDataBox2 > table > thead > tr:nth-child(1) > td.BgNr.alRight');
+
+					//console.log("resCount = " +resCount.replace(/\D+/, ''));
+					processLinks();
+					});
+				});		
+			}, 
+			
+			
+			function() { console.log ("timeout");}, 3000);
+
+
+		});
+	});
+})
+
+var nextPageBtn = '#airportSearchTable_2_0 > div.borderOuter > div.borderInner.smallDataBox2 > div.listingTableButtons > div.listingButton.flRight.alRight > button';
+
+var highlightedPage = '#airportSearchTable_2_0 > div.borderOuter > div.borderInner.smallDataBox2 > div.listingTableButtons > div.listingPages > span';
+
+ICAO_Codes= {};
+dead = false;
+
+function processLinks()
+{
+	pageNr++;
+
+	
+	casper.then(function() {
+		//console.log("Page = "+pageNr);
+
+		// grab the links
+		casper.each(this.getElementsInfo('#airportSearchTable_2_0 > div.borderOuter > div.borderInner.smallDataBox2 > table > tbody > tr > td:nth-child(2)'),
+			function(casper, icao_code) {
+				ICAO_Codes[icao_code.text.trim()] = 1;
+			});
+
+		
+
+		casper.then(function() {
+		// traverse remaining pages
+			if (this.exists(nextPageBtn))
+			{
+
+				this.thenClick(nextPageBtn, function() {
+						//casper.waitForSelectorTextChange(ManageRouteSelectors.currentPage, //function() {
+						casper.waitForSelector(highlightedPage,
+
+						function found() {
+							casper.then(processLinks);
+						},
+						
+						function timeout() {
+							logMessage('DEBUG', "Dead");
+					
+							dead = true;
+						}, 
+						15000);
+					});
+
+			}
+			else
+			{
+				dead = true;
+			}
+		});
+		if (dead) return;
+	
+	});
+}
+
+casper.then(function()
+{
+	//console.log(JSON.stringify(Object.keys(ICAO_Codes)));
+	this.getDemandFromDestList(Object.keys(ICAO_Codes));
+	//this.exit(1);
+});
+
+
+
+casper.getDemandFromDestList = function (destination_codes) {
 casper.each(destination_codes, function(casper, dest_ICAO, index) {
 var daily_demand = { "Y" : [0,0,0,0,0,0,0], "C" : [0,0,0,0,0,0,0], "F" : [0,0,0,0,0,0,0], "total" : [0,0,0,0,0,0,0] };
 var total_daily_supply = [0,0,0,0,0,0,0];
@@ -365,6 +365,7 @@ casper.then(function() {
 		console.log(outstr);
 	}
 });
+};
 
 /*
 casper.then(function() {

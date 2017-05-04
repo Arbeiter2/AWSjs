@@ -62,7 +62,7 @@ casper.each(allAirports, function(casper, airport, index) {
 
 	function timeout()
 	{
-		this.capture('c:\temp\xrerror.png');
+		this.capture('c:/temp/xrerror.png');
 
 	},
 	

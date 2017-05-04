@@ -9,7 +9,7 @@ for /f "tokens=1,* delims= " %%a in ("%*") do set ALL_BUT_FIRST=%%b
 
 IF [%ACTION%]==[start] (
 @echo on
-c:\casperjs\bin\casperjs --cookies=cookies2.txt %ALL_BUT_FIRST%
+c:\casperjs\bin\casperjs %ALL_BUT_FIRST%
 @echo off
 )
 

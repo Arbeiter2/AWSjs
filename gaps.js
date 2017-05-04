@@ -168,12 +168,14 @@ casper.getTimetableGaps = function(timetableData, callback)
 		
 	//logMessage('DEBUG', this.getCurrentUrl());	
 		//timetableObj.validFlight = false;
-		this.waitForSelector(ManageRouteSelectors.functionSelect, 
+		this.waitWhileVisible('#loadingAnimation', function() {}, function() {}, 3000);
+		this.waitForSelector('tr[id^="rData"]', 
 			function found()
 			{
-				//logMessage('DEBUG', "timetable [" + timetableObj.name + "] (" +  timetableObj.base + "): valid flight [" + flightNumber + "]");
+				//logMessage('DEBUG', "timetable [" + timetableObj.name + "] (" +  timetableObj.base_airport_iata + "): valid flight [" + flightNumber + "]");
 				aircraftLinks = this.getElementsInfo(ManageRouteSelectors.assignedAircraftCell);
 				days = this.getElementsInfo(ManageRouteSelectors.flightDays);
+
 				acTooltips = (this.exists(ManageRouteSelectors.aircraftTooltip) ? this.getElementsInfo(ManageRouteSelectors.aircraftTooltip) : null);
 				
 				if (acTooltips === null)
@@ -187,6 +189,7 @@ casper.getTimetableGaps = function(timetableData, callback)
 			
 			function timeout()
 			{
+this.capture('c:/temp/xrerror.png');
 				return null;
 			}, 
 		

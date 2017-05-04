@@ -3,9 +3,22 @@
 
 var prefs = {
     pageSettings: {
+        javascriptEnabled: true,
+        loadImages: true,
+        loadPlugins: true,
+        localToRemoteUrlAccessEnabled: true,
+        XSSAuditingEnabled: false,
+        logLevel: 'debug',
 		userAgent: "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36",
 		webSecurityEnabled: false 
-	}
+	},
+	
+    verbose: false,
+    logLevel: 'error',
+    exitOnError: false,
+    ignoreSslErrors: true,
+    engine: 'slimerjs',
+
 };
 
 var verbose = false;
@@ -14,10 +27,7 @@ if (verbose)
 	prefs['verbose'] = true;
 	prefs['logLevel'] = 'debug';
 }
-else
-{
-	prefs['logging'] = 'error';
-}
+
 var casper = require('casper').create(prefs);
 
 

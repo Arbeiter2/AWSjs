@@ -51,11 +51,13 @@ casper.createFlights = function(from_ICAO, to_ICAO, fleet_type_id, days, time, c
 		time = "12:00";
 
 	this.thenOpen(newUrl, function() {
-		this.waitForText('Click confirm when all airports are selected.', 
-		
+		//this.waitForText('Click confirm when all airports are selected.', 
+		this.waitUntilVisible(CreateRouteSelectors.confirmBtn,
 		function found()
 		{		
 		//console.log("clicking confirm");
+		this.capture('c:/tmp/predodgy.png');
+
 
 		},
 		
@@ -81,6 +83,7 @@ casper.createFlights = function(from_ICAO, to_ICAO, fleet_type_id, days, time, c
 			function timeout()
 			{
 				logMessage("ERROR", "Timeout waiting for confirm button: " + this.getCurrentUrl());
+				this.capture('c:/tmp/dodgy.png');
 				return null;		
 			},
 			

@@ -31,7 +31,9 @@ while (<FH>)
 	my @fields = split(/,/);
 	next if ($fields[2] !~ /^\d+/);
 	next if ($fields[2] > $max_range);
-	my $demand = $fields[3] - $fields[4];
+	my $supply = ($fields[4] > $fields[5] ? $fields[4] : $fields[5]);
+	my $demand = $fields[3] - $supply;
+	#print "$_ $demand\n";
 	next if ($demand < $min_load);
 	my $count = int($demand/$min_load);
 
