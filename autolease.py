@@ -4,9 +4,7 @@ import subprocess
 import sys
 import json, simplejson, copy
 import random
-import itertools
 import time, re
-import shlex
 
 casperCommand = "/usr/local/lib/node_modules/casperjs/bin/casperjs --ssl-protocol=tlsv1"
 casperCommand = "c:/casperjs/bin/casperjs"
@@ -16,6 +14,7 @@ executable = '/bin/bash'
 executable = 'c:/windows/system32/cmd.exe'
 
 def runCommand(cmdLine):
+    print(cmdLine)
     process = subprocess.Popen(cmdLine,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
@@ -23,15 +22,23 @@ def runCommand(cmdLine):
         shell=True)
 
     out, err = process.communicate()
+    print("out = {}\nerr = {}".format(out, err))
     return (process.returncode, out.decode('utf-8'))
 
 def findUnassignedAircraft(game_id):
     command_line = ("{} "
         "{}/get_unassigned.js "
-        "--game_id={} --silent").format(casperCommand, scriptPath, game_id)
+        "--game_id={}"
+        " --silent"
+        ).format(casperCommand, scriptPath, game_id)
     (returncode, output) = runCommand(command_line)
 
-    status = json.loads(output)
+    #print("findUnassignedAircraft:\n{}\n{}".format(returncode, output))
+    try:
+        status = json.loads(output)
+    except:
+        status = False
+        returncode = 1
 
     return (output, returncode, status)
 
@@ -65,7 +72,7 @@ def leaseAircraft(game_id, fleet_type_id, seat_config_id, base_airport_iata,
             "--seat-config-id={} "
             "--base={} "
             "--range={} "
-            "--keyword='{}'").format(casperCommand, scriptPath, game_id, fleet_type_id, seat_config_id, 
+            "--keyword=\\\"{}\\\"").format(casperCommand, scriptPath, game_id, fleet_type_id, seat_config_id, 
             base_airport_iata, max_distance_nm, model)
     (returncode, output) = runCommand(command_line)
     #print(returncode, output)
@@ -242,6 +249,7 @@ for i in indexes:
     timetable['lastAircraft']['registration'] = newAircraft['registration']
 
 # write out gap file
+simplejson.dumps(gaps, indent=4 * ' ')
 testfile = open(gaps_file, "w")
 testfile.write(simplejson.dumps(gaps, indent=4 * ' '))
 testfile.close()

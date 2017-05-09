@@ -15,14 +15,14 @@ function getRangeSelectVal(range)
 	if (range === 0)
 		return selectVal;
 		
-	for (var i=0; i < rangeLimits.length - 1; i++)
+	for (var i=0; i < rangeLimits.length-1; i++)
 	{
-		if (range >= rangeLimits[i] && range <= rangeLimits[i+1])
+		if (rangeLimits[i] >= range)
 			break;
 		else
 			selectVal = rangeLimits[i+1];
 	}
-	//console.log("range >= "+selectVal);
+	console.log("range >= "+selectVal);
 	return selectVal;
 }
 
@@ -36,16 +36,7 @@ casper.getLeaseAircraft = function(fleet_type_id, base_airport_iata, seat_config
 	{
 		return;
 	}
-	
-	// create initial form search
-	var UAMSearch = {};
-	UAMSearch['#filterFleet'] = fleet_type_id;
-	//UAMSearch['#filterCond'] = 70;
-	if (keyword !== undefined && keyword.length >= 3)
-		UAMSearch['#Keyword'] = keyword;
-	if (range !== undefined && range > 0)
-		UAMSearch['#filterRange'] = getRangeSelectVal(range);
-
+	var UAMSearch;
 	var outputJson = { "error" : "" };
 	outputJson.base_airport_iata = base_airport_iata;
 					
@@ -55,6 +46,20 @@ casper.getLeaseAircraft = function(fleet_type_id, base_airport_iata, seat_config
 	casper.thenOpen('http://www.airwaysim.com/game/Aircraft/Used', function()
 		{
 			this.waitForSelector('#aircraftMarketReloadButton > button > span', function() {
+				searchForm = '#submenuContainer > div > form';
+				
+				UAMSearch = casper.getFormValues(searchForm);
+				
+				// create initial form search
+				UAMSearch['filterAge'] = "20";
+				UAMSearch['filterCond'] = "90";
+				UAMSearch['filterFleet'] = fleet_type_id.toString();
+
+				if (keyword !== undefined && keyword.length >= 3)
+					UAMSearch['Keyword'] = keyword;
+				if (range !== undefined && range > 0)
+					UAMSearch['filterRange'] = getRangeSelectVal(range).toString();
+
 				if (this.visible('#contentMain > div > div > div.Warn > div.Text'))
 				{
 					logMessage("ERROR", "UAM unavailable");
@@ -86,14 +91,13 @@ casper.getLeaseAircraft = function(fleet_type_id, base_airport_iata, seat_config
 		}
 	);
 
-	searchForm = '#submenuContainer > div > form';
 	lease_link = '#aircraftData > form > table > tbody > tr > td:nth-child(8) > a:nth-child(3)';
 
 	casper.then(
 		function()
 		{
-			this.fillSelectors(searchForm, UAMSearch, false);
-			//console.log(JSON.stringify(UAMSearch, null, 4));
+//			console.log(JSON.stringify(UAMSearch, null, 4));
+			this.fill(searchForm, UAMSearch, false);
 			this.evaluate(function(formSelector){
 				 document.querySelector(formSelector).submit();
 			}, searchForm);	
@@ -109,6 +113,7 @@ casper.getLeaseAircraft = function(fleet_type_id, base_airport_iata, seat_config
 			//console.log(JSON.stringify(this.getElementsInfo(x('//a[text()="' + keyword + '"]/parent::td/parent::tr/td/a[3]')), null, 4));
 			//this.exit(1);
 			if (UAMAvailable) {
+//this.capture('c:/tmp/lease.png')
 				this.waitForSelector(leaseLinkSelector, function() {
 					leaseLinks = this.getElementsInfo(leaseLinkSelector);
 				},
@@ -219,7 +224,6 @@ function doLease(links, index, options, callback)
 				$('#LeaseLength').val(length).change();
 			}, options.seat_config_id, leaseLength);
 			
-			this.capture('c:/tmp/lease.png')
 
 			regPrefix = this.getElementInfo(x('//*[@id="regBox' + baseValue +'"]')).text;
 			regPrefix = regPrefix.trim().split("(")[0];
@@ -293,7 +297,7 @@ function usage()
 					  "[--seat-config-id=<seat-config-id>]\n" +
 					  "[--base=<base-airport-iata>] (optional)\n" +
 					  "[--range=<min-range>] (optional)\n" + 
-					  "[--search=<search-string>] (optional)"
+					  "[--keyword=<search-string>] (optional)"
 				  );
 	casper.exit(1);
 }

@@ -166,7 +166,7 @@ var ScheduleSelectors =
 	'addFlightsForm2': '#routeData > form:nth-child(3)',
 	
 	'maintenanceText'	: 'div[id^="tooltip_chkA"]', 	
-	'addMaintenanceBtn'	: x('//*[@id="routeForm"]/table/thead/tr[3]/td[9]/div[1]/a[2]'),
+	'addMaintenanceBtn'	: 'a[title="Set maintenance"]',
 	'addMaintenanceForm'	: '#dialogAddMaint > form',
 
 	'maintenanceSubmitBtn'	: x('//*[@id="maintOKbtn"]'),

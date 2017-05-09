@@ -13,7 +13,8 @@ console.log(argv[0] + requiredArgs.join("\n") + "\n" +
 					  "--h\tthis message" + "\n" +
 					  "--base=<airport ICAO code>\n" +
 					  "--region=<region code> (WO|NA|EU|AF|AS|SA|OC)\n" +
-					  "--max-range=<maximum range>\n" +
+					  "[--min-range=<minimum range>]\n" +
+					  "[--max-range=<maximum range>]\n" +
 					  "--level=<airport level>[+] (0=All|1=Insignificant|2=Small|3=Middle-size|4=Significant|5=Large");
 }
 
@@ -61,6 +62,18 @@ else
 }
 
 
+// min-range
+var min_range = "0";
+if (casper.cli.has("min-range"))
+{
+	min_range = parseInt(casper.cli.get("min-range"));
+	if (min_range < 0)
+	{
+		usage();
+		casper.exit(1);
+	}
+}
+
 // max-range
 var max_range = "0";
 if (casper.cli.has("max-range"))
@@ -75,6 +88,7 @@ if (casper.cli.has("max-range"))
 
 logMessage("INFO", "Base: "+base_ICAO);
 logMessage("INFO", "Region: "+region);
+logMessage("INFO", "min_range: "+min_range);
 logMessage("INFO", "max_range: "+max_range);
 logMessage("INFO", "Levels: "+levels);
 
@@ -99,6 +113,7 @@ casper.then(function() {
 				
 				this.fill('#searchForm2_0', {
 					'Size':    level,
+					'RangeMin':    min_range,
 					'RangeMax':    max_range
 				}, false);		
 

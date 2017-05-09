@@ -625,6 +625,7 @@ function ElementInfoReplace(name, val)
 casper.assignRoutesToAircraft = function(routes, aircraftData, callback)
 {
 	var flightsSeen = [];
+	var base_id = "";
 	
 	// check whether we have all the routes or not; we do all or nothing
 	casper.each(routes, function(casper, routeData, index) {
@@ -633,6 +634,12 @@ casper.assignRoutesToAircraft = function(routes, aircraftData, callback)
 			logMessage("ERROR", "Aborting route assignment to aircraft - all routes not available");
 			callback(false);
 		}
+	});
+	
+	// get base_id
+	casper.then(function()
+	{
+		base_id = this.getElementInfo('#BaseID' + aircraftData.aircraft_id).text.trim();
 	});
 
 	logMessage('INFO', "Assigning " + routes.length + " routes to aircraft " + aircraftData.aircraft_reg + " " + scheduleAircraftIDURL + aircraftData.aircraft_id);
@@ -660,7 +667,11 @@ casper.assignRoutesToAircraft = function(routes, aircraftData, callback)
 			var addFlights = function() {
 				var formData = {};
 				var flightsOnScreen = 0;
-				
+				/*
+				casper.evaluate(function(fleet, ac, base)
+				{
+					addFlights(fleet, ac, base, 1, 1); return false;
+				}, aircraftData.fleet_type_id, aircraftData.aircraft_id, base_id);		*/		
 
 				casper.thenClick(ScheduleSelectors.addFlightsBtn, function () {
 					this.thenClick('#dialogAddFlight > div > a');
@@ -792,7 +803,6 @@ available_routes = this.getElementInfo(ScheduleSelectors.addFlightsForm).html.ma
 								{
 									if (this.visible(ScheduleSelectors.routeError))
 									{
-										this.capture('c:/tmp/jxrerror.png');
 
 										logMessage('ERROR', "assignRoutesToAircraft(): Error adding routes to " + aircraftData.aircraft_reg + this.fetchText('#routeErrorMsgText'));
 										callback(false);
@@ -800,6 +810,7 @@ available_routes = this.getElementInfo(ScheduleSelectors.addFlightsForm).html.ma
 									else
 									{
 										logMessage('ERROR', 'Timeout waiting for visible add flights success message');
+										this.capture('c:/tmp/jxrerror.png');
 										callback(false);
 									}
 								},
@@ -812,8 +823,13 @@ available_routes = this.getElementInfo(ScheduleSelectors.addFlightsForm).html.ma
 				casper.then(function ()
 				{
 					if (flightsSeen.length < routes.length)
+					{
+						this.evaluate(function(fleet, ac, base)
+						{
+							addFlights(fleet, ac, base, 1, 1); return false;
+						}, aircraftData.fleet_type_id, aircraftData.aircraft_id, base_id);	
 						addFlights();
-					//casper.exit(1);
+					}
 				});
 
 			};
@@ -821,21 +837,28 @@ available_routes = this.getElementInfo(ScheduleSelectors.addFlightsForm).html.ma
 			//console.log(addFlights);
 			
 				
-			this.thenClick(ScheduleSelectors.addFlightsBtn, function () {
-				this.waitUntilVisible(ScheduleSelectors.submitFlightsBtn, //ScheduleSelectors.pattern_flightSelectCheck.replace('%ID%', routes[0].flight_id), 
-				
-
-				addFlights,
-
-				
-				function timeout()
+			this.thenClick(ScheduleSelectors.addFlightsBtn, 
+			
+				function () 
 				{
-					logMessage('ERROR', "assignRoutesToAircraft(): Timeout loading scheduling form at " + this.getCurrentUrl());
-					casper.exit(1);
-				},
+				this.evaluate(function(fleet, ac, base)
+				{
+					addFlights(fleet, ac, base, 1, 1); return false;
+				}, aircraftData.fleet_type_id, aircraftData.aircraft_id, base_id);	
+					//this.capture("C:/tmp/gotschedule.png"); 
 				
-				1500
-				);
+					this.waitUntilVisible(ScheduleSelectors.submitFlightsBtn, //ScheduleSelectors.pattern_flightSelectCheck.replace('%ID%', routes[0].flight_id), 
+						addFlights,
+
+						function timeout()
+						{
+							logMessage('ERROR', "assignRoutesToAircraft(): Timeout loading scheduling form at " + this.getCurrentUrl());
+							this.capture("C:/tmp/schedule.png"); 
+
+							casper.exit(1);
+						},
+					
+						1500);
 			});
 			});
 		},
@@ -940,6 +963,8 @@ casper.buildNextDayRoutes = function(parentRoutes, aircraftData, noSlots, callba
 	});	
 };
 
+
+
 /*
 	assignMaintenanceToAircraft
 	
@@ -958,22 +983,39 @@ casper.assignMaintenanceToAircraft = function(aircraftData, day, hour, minute, c
 		return 0;
 	}
 
-	casper.thenOpen(scheduleAircraftIDURL + aircraftData.aircraft_id, function() {
-		casper.waitForSelector(ScheduleSelectors.addMaintenanceBtn,
-			function found()
-			{
+	this.thenOpen(scheduleAircraftIDURL + aircraftData.aircraft_id, function() {
+		if (this.visible('#loadingAnimation'))
+		{
+			this.waitWhileVisible('#loadingAnimation', 
+				function() {
+				}, 
+
+				function(){
+					//console.log("loadingAnimation no longer visible");
+				},
+				2000);
+		}
+		
+		this.thenClick('#submenuContainer > div > form > div.filterSubmit > input[type="submit"]', function() {
+		//this.waitForSelector(ScheduleSelectors.addMaintenanceBtn,
+		//	function found()
+		//	{
 				// now schedule maintenance
-				this.thenClick(ScheduleSelectors.addMaintenanceBtn, function () {
-					this.waitUntilVisible(ScheduleSelectors.maintenanceSubmitBtn, 
-						function found()
-						{
+		//		this.thenClick('a[title="Set maintenance"]', function () {
+		this.evaluate(function(id) {
+			setMaintenance(id, 0);
+			}, aircraftData.aircraft_id);
+			//this.capture("C:/tmp/mtxschedule.png"); 
+					//this.waitUntilVisible(ScheduleSelectors.maintenanceSubmitBtn, 
+					//	function found()
+					//	{
 							var formData = {};
 							
 							// copy time and set day from parent
 							formData[ScheduleSelectors.maintenanceADay] = day;
 							//formData[ScheduleSelectors.pattern_maintenanceADay.replace('%DAY%', day)] = true;
-							formData[ScheduleSelectors.maintenanceAHour] = parseInt(hour, 10);
-							formData[ScheduleSelectors.maintenanceAMinute] = parseInt(minute, 10);
+							formData[ScheduleSelectors.maintenanceAHour] = hour;
+							formData[ScheduleSelectors.maintenanceAMinute] = minute;
 							formData[ScheduleSelectors.maintenanceANow] = false;
 							//formData[ScheduleSelectors.maintenanceBDay] = day;
 							//formData[ScheduleSelectors.maintenanceBHour] = hour;
@@ -981,21 +1023,28 @@ casper.assignMaintenanceToAircraft = function(aircraftData, day, hour, minute, c
 							formData[ScheduleSelectors.maintenanceBNow] = false;
 							//formData[ScheduleSelectors.maintenanceSameForB] = true;	// generally the case
 							
+							
+					
 					
 							this.then(function() {
+								this.click('#dialogAddMaintADay' + day.toString());
+								this.evaluate(function(h, m) {
+									$('#dialogAddMaintBsame').prop('checked','true').trigger('change');
+									$('#dialogAddMaintADepH').val(h).change();
+									$('#dialogAddMaintADepM').val(m).change();
+								}, hour, minute);	
 								//require('utils').dump(formData);
 								this.fill(ScheduleSelectors.addMaintenanceForm, formData, false);
 								//require('utils').dump(this.getFormValues(ScheduleSelectors.addMaintenanceForm));
 								// click the radio button for day
-								this.click(ScheduleSelectors.pattern_maintenanceADay.replace('%DAY%', day));
+								//this.click(ScheduleSelectors.pattern_maintenanceADay.replace('%DAY%', day));
 								
 								// click the "same for B" checkbox to complete form
-								this.click('#' + ScheduleSelectors.maintenanceSameForB);
+								//this.click('#' + ScheduleSelectors.maintenanceSameForB);
 								
 								//logMessage('DEBUG', "maintenance: day = " + day + ", selector = " + ScheduleSelectors.pattern_maintenanceADay.replace('%DAY%', day) + ", time = " + hour + ":" + minute);
-							});
-							
-							this.then(function() {
+
+								
 								//this.capture('/home/delano/xrbefore.png');
 								//require('utils').dump(this.getFormValues(ScheduleSelectors.addMaintenanceForm));
 								this.click(ScheduleSelectors.maintenanceSubmitBtn);
@@ -1014,41 +1063,43 @@ casper.assignMaintenanceToAircraft = function(aircraftData, day, hour, minute, c
 								{
 									if (this.visible(ScheduleSelectors.routeError))
 									{
-										//this.capture('c:/tmp/jxrerror.png');
-
 										logMessage('ERROR', "assignMaintenanceToAircraft(): Error adding maintenance to " + aircraftData.aircraft_reg + ": overlapping flights");
 										callback(false);
 									}
 									else
 									{
 										logMessage('ERROR', 'Timeout waiting for visible maintenance success message');
+										this.capture('c:/tmp/jxrerror.png');
 										callback(false);
 									}
 								},
 								
 								10000
 							);
-						},
+						/*},
 						
 						function timeout()
 						{
 							logMessage('ERROR', "assignMaintenanceToAircraft(): Timed out waiting for maintenance form on " + this.getCurrentUrl());
+							casper.capture("C:/tmp/badschedule.png");
+	
 							callback(false);
 						},
 						
 						5000
-					);
-				});
-			},
+					);*/
+		//		});
+		//	},
 			
-			function timeout()
-			{
-				logMessage('ERROR', "assignMaintenanceToAircraft(): Timeout opening scheduling page " + this.getCurrentUrl());
-				callback(false);	
-			},
+		//	function timeout()
+		//	{
+		//		logMessage('ERROR', "assignMaintenanceToAircraft(): Timeout opening scheduling page " + this.getCurrentUrl());
+		//		callback(false);	
+		//	},
 			
-			10000
-		);
+		//	10000
+		//);
+	});
 	});
 };
 
