@@ -7,6 +7,9 @@ phantom.libraryPath = '/home/delano/js';
 phantom.injectJs( './global.js'); 
 phantom.injectJs( 'selectors.js'); 
 
+var options = ['game_id', 'base', 'region', 'min-range', 
+			   'max-range', 'threshold', 'level'];
+var goodArgs = true;
 function usage()
 {
 console.log(argv[0] + requiredArgs.join("\n") + "\n" +
@@ -15,83 +18,135 @@ console.log(argv[0] + requiredArgs.join("\n") + "\n" +
 					  "--region=<region code> (WO|NA|EU|AF|AS|SA|OC)\n" +
 					  "[--min-range=<minimum range>]\n" +
 					  "[--max-range=<maximum range>]\n" +
+					  "[--threshold=<min demand>]\n" +
 					  "--level=<airport level>[+] (0=All|1=Insignificant|2=Small|3=Middle-size|4=Significant|5=Large");
 }
 
 var url = 'http://www.airwaysim.com/game/Routes/Planning/X/'; 
-var threshold = 60;
 var links = [];
+var i = 0;
 
+for (opt in casper.cli.options)
+{
+	if (opt === 'casper-path' || opt == 'cli' || opt == 'silent' || opt == 'html')
+		continue;
+	if (options.indexOf(opt) == -1)
+	{
+		goodArgs = false;
+		logMessage("ERROR", "Invalid option [" + opt + "]");
+		break;
+	}
+}
 
 if (!casper.cli.has("region") || !casper.cli.has("level") || !casper.cli.has("base"))
 {
-	usage();
-	casper.exit(1);
+	goodArgs = false;
 }
 
 // base
-var base_ICAO = casper.cli.get("base").toUpperCase();
-if (!/^[A-Z]{4}$/.test(base_ICAO))
+if (goodArgs)
 {
-	usage();
-	casper.exit(1);
+	var base_ICAO = casper.cli.get("base").toUpperCase();
+	if (!/^[A-Z]{4}$/.test(base_ICAO))
+	{
+		goodArgs = false;
+	}
 }
 
 // region
-var region = casper.cli.get("region").toUpperCase();
-if (region.match(/^(WO|NA|EU|AF|AS|SA|OC)$/) === null)
+if (goodArgs)
 {
-	usage();
-	casper.exit(1);
+	var region = casper.cli.get("region").toUpperCase();
+	if (region.match(/^(WO|NA|EU|AF|AS|SA|OC)$/) === null)
+	{
+		goodArgs = false;
+	}
 }
 
 // level
-var levelStr = casper.cli.get("level").toString();
-if (levelStr.match(/^[0-5]\+?$/) === null)
+if (goodArgs)
 {
-	usage();
-	casper.exit(1);
-}
-var levels = [];
-if (levelStr[0] === "0")
-	levels = levelStr[0];
-else
-{
-	for (var i=parseInt(levelStr[0], 10); i <=5; i++)
-		levels.push('' + i);
+	var levelStr = casper.cli.get("level").toString();
+	if (levelStr.match(/^[0-5]\+?$/) === null)
+	{
+		goodArgs = false;
+	}
+	else
+	{
+		var levels = [];
+		if (levelStr[0] === "0")
+			levels = levelStr[0];
+		else
+		{
+			if (levelStr[levelStr.length-1] == '+')
+			{
+				for (var i=parseInt(levelStr[0], 10); i <=5; i++)
+					levels.push('' + i);
+			}
+			else
+			{
+				levels.push(levelStr);
+			}
+		}
+	}
 }
 
+// threshold
+if (goodArgs)
+{
+	var threshold = 125;
+	if (casper.cli.has("threshold"))
+	{
+		threshold = parseInt(casper.cli.get("threshold"));
+		if (threshold < 0)
+		{
+			goodArgs = false;
+		}
+	}
+}
 
 // min-range
-var min_range = "0";
-if (casper.cli.has("min-range"))
+if (goodArgs)
 {
-	min_range = parseInt(casper.cli.get("min-range"));
-	if (min_range < 0)
+	var min_range = "0";
+	if (casper.cli.has("min-range"))
 	{
-		usage();
-		casper.exit(1);
+		min_range = parseInt(casper.cli.get("min-range"));
+		if (min_range < 0)
+		{
+			goodArgs = false;
+		}
 	}
 }
+
 
 // max-range
-var max_range = "0";
-if (casper.cli.has("max-range"))
+if (goodArgs)
 {
-	max_range = parseInt(casper.cli.get("max-range"));
-	if (max_range < 0)
+	var max_range = "0";
+	if (casper.cli.has("max-range"))
 	{
-		usage();
-		casper.exit(1);
+		max_range = parseInt(casper.cli.get("max-range"));
+		if (max_range < 0)
+		{
+			goodArgs = false;
+		}
 	}
 }
 
-logMessage("INFO", "Base: "+base_ICAO);
-logMessage("INFO", "Region: "+region);
-logMessage("INFO", "min_range: "+min_range);
-logMessage("INFO", "max_range: "+max_range);
-logMessage("INFO", "Levels: "+levels);
-
+if (goodArgs)
+{
+	logMessage("INFO", "Base: "+base_ICAO);
+	logMessage("INFO", "Region: "+region);
+	logMessage("INFO", "min_range: "+min_range);
+	logMessage("INFO", "max_range: "+max_range);
+	logMessage("INFO", "Levels: "+levels);
+}
+else
+{
+	usage();
+	casper.exit();
+}
 // only do login check if all params available
 phantom.injectJs('login.js'); 
 
@@ -114,7 +169,8 @@ casper.then(function() {
 				this.fill('#searchForm2_0', {
 					'Size':    level,
 					'RangeMin':    min_range,
-					'RangeMax':    max_range
+					'RangeMax':    max_range,
+					'filterOwnRoutes': 'true'
 				}, false);		
 
 				//console.log(JSON.stringify(this.getFormValues('#searchForm2_0'), null, 4));
@@ -123,7 +179,7 @@ casper.then(function() {
 					this.waitForText('Number of results: ', function() {
 					resCount = this.fetchText('#airportSearchTable_2_0 > div.borderOuter > div.borderInner.smallDataBox2 > table > thead > tr:nth-child(1) > td.BgNr.alRight');
 
-					//console.log("resCount = " +resCount.replace(/\D+/, ''));
+					console.log("resCount = " +resCount.replace(/\D+/, ''));
 					processLinks();
 					});
 				});		
@@ -155,14 +211,16 @@ function processLinks()
 		// grab the links
 		casper.each(this.getElementsInfo('#airportSearchTable_2_0 > div.borderOuter > div.borderInner.smallDataBox2 > table > tbody > tr > td:nth-child(2)'),
 			function(casper, icao_code) {
-				ICAO_Codes[icao_code.text.trim()] = 1;
+				var c=icao_code.text.trim();
+				//console.log(c);
+				ICAO_Codes[c] = 1;
 			});
 
 		
 
 		casper.then(function() {
 		// traverse remaining pages
-			if (this.exists(nextPageBtn))
+			if (this.visible(nextPageBtn))
 			{
 
 				this.thenClick(nextPageBtn, function() {
