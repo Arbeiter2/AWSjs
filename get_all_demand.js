@@ -179,7 +179,7 @@ casper.then(function() {
 					this.waitForText('Number of results: ', function() {
 					resCount = this.fetchText('#airportSearchTable_2_0 > div.borderOuter > div.borderInner.smallDataBox2 > table > thead > tr:nth-child(1) > td.BgNr.alRight');
 
-					console.log("resCount = " +resCount.replace(/\D+/, ''));
+					//console.log("resCount = " +resCount.replace(/\D+/, ''));
 					processLinks();
 					});
 				});		

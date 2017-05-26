@@ -14,7 +14,7 @@ executable = '/bin/bash'
 executable = 'c:/windows/system32/cmd.exe'
 
 def runCommand(cmdLine):
-    print(cmdLine)
+    #print(cmdLine)
     process = subprocess.Popen(cmdLine,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
@@ -22,7 +22,7 @@ def runCommand(cmdLine):
         shell=True)
 
     out, err = process.communicate()
-    print("out = {}\nerr = {}".format(out, err))
+    #print("out = {}\nerr = {}".format(out, err))
     return (process.returncode, out.decode('utf-8'))
 
 def findUnassignedAircraft(game_id):
@@ -210,7 +210,7 @@ for i in indexes:
 
         #print(status, newAircraft)
         if newAircraft['error'] != '':
-            #print(newAircraft['error'])
+            print(newAircraft['error'])
             if newAircraft['error'] == "UAM unavailable":
                 UAMAvailable = False
                 continue

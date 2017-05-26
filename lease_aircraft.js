@@ -22,7 +22,7 @@ function getRangeSelectVal(range)
 		else
 			selectVal = rangeLimits[i+1];
 	}
-	console.log("range >= "+selectVal);
+	//console.log("range >= "+selectVal);
 	return selectVal;
 }
 

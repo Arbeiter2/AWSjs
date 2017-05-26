@@ -55,14 +55,14 @@ if (casper.cli.has('h'))
 	casper.exit(1);
 }
 
-var keyword = "";
+var keywordList = [""];
 if (casper.cli.has('keyword'))
 {
 	var key = casper.cli.get('keyword').toUpperCase();
 	if (key.length >= 3)
 	{
-		keyword = "Keyword=" + key;
-		logMessage('INFO', "Using keyword [" + key + "]");
+		keywordList = key.split(/,/);
+		logMessage('INFO', "Using keywords [" + keywordList + ']');
 	}
 }
 
@@ -109,7 +109,8 @@ var totalPages;
 var dead = false;
 var pageLimit = 20;
 
-var searchURL = 'http://www.airwaysim.com/game/Routes/Manage/?' + keyword;
+casper.each(keywordList, function(self, keyword) {
+var searchURL = 'http://www.airwaysim.com/game/Routes/Manage/?Keyword=' + keyword;
 casper.thenOpen(searchURL,
 
 function processLinks()
@@ -245,6 +246,8 @@ casper.then(function() {
 		var acData = getAircraftURLData(acInfo.html);
 		aircraftFlightMap[flight_id] = { 'aircraft_type' : acData[0].text,	'aircraft_reg' : acData[1].text };
 	});
+});
+
 });
 
 var nFlightsProcessed= 0;
