@@ -21,38 +21,43 @@ function processLinks()
 
 //console.log('Processing page ' + pageNr);
 
-	this.waitForSelector(ViewAircraftSelectors.functionSelect);
-
-	var acIDs = this.getElementsInfo(ViewAircraftSelectors.boozer);
-	var dataRows = [];
-	
-	for(var index=0; index < acIDs.length; index++) {
-		dataRows[index] = acIDs[index].attributes.id.replace('Model', 'http://www.airwaysim.com/game/Aircraft/My/View/');
-	};
-	
-	links.push.apply( links, dataRows );
-	
-	logMessage('DEBUG', "Got " + dataRows.length + " aircraft on page " + pageNr);
-
-	// traverse all pages
-	if (this.exists(ViewAircraftSelectors.pageSelector))
+	this.waitForSelector(ViewAircraftSelectors.boozer, 
+	function() 
 	{
-		// find number of select options = number of pages
-		var f = this.evaluate(function(sel) {
-			return document.querySelector('#aircraftForm > div.Small.alRight > select').length;
-		});
+		var acIDs = this.getElementsInfo(ViewAircraftSelectors.boozer);
+		//console.log(JSON.stringify(acIDs));
+
+		var dataRows = [];
 		
-		// selected page number is highlighted in footer
-		var pNr = this.getElementInfo(ViewAircraftSelectors.currentPage).text.trim();
-		if (pNr < f)
+		for(var index=0; index < acIDs.length; index++) {
+			dataRows[index] = acIDs[index].attributes.id.replace('Model', 'http://www.airwaysim.com/game/Aircraft/My/View/');
+		};
+		
+		links.push.apply( links, dataRows );
+		
+		logMessage('DEBUG', "Got " + dataRows.length + " aircraft on page " + pageNr);
+
+
+		// traverse all pages
+		if (this.exists('#aircraftData > div.listingTableButtons > div.listingButton.flRight.alRight > button' /*ViewAircraftSelectors.pageSelector*/))
 		{
-			this.thenClick(ViewAircraftSelectors.nextPage, function() {
-				casper.waitForSelectorTextChange(ViewAircraftSelectors.currentPage, function() {
-						casper.then(processLinks);
-				});
+			// find number of select options = number of pages
+			var f = this.evaluate(function(sel) {
+				return document.querySelector('#aircraftForm > div.Small.alRight > select').length;
 			});
+			
+			// selected page number is highlighted in footer
+			var pNr = this.getElementInfo(ViewAircraftSelectors.currentPage).text.trim();
+			if (pNr < f)
+			{
+				this.thenClick(ViewAircraftSelectors.nextPage, function() {
+					casper.waitForSelectorTextChange(ViewAircraftSelectors.currentPage, function() {
+							casper.then(processLinks);
+					});
+				});
+			}
 		}
-	}
+	});
 });
 
 
