@@ -8,7 +8,7 @@ phantom.injectJs( './global.js');
 phantom.injectJs( 'selectors.js'); 
 
 var options = ['game_id', 'base', 'region', 'min-range', 
-			   'max-range', 'threshold', 'level'];
+			   'max-range', 'threshold', 'level', 'filter'];
 var goodArgs = true;
 function usage()
 {
@@ -19,6 +19,7 @@ console.log(argv[0] + requiredArgs.join("\n") + "\n" +
 					  "[--min-range=<minimum range>]\n" +
 					  "[--max-range=<maximum range>]\n" +
 					  "[--threshold=<min demand>]\n" +
+					  "[--filter (ignore routes currently flown)]\n" +
 					  "--level=<airport level>[+] (0=All|1=Insignificant|2=Small|3=Middle-size|4=Significant|5=Large");
 }
 
@@ -134,12 +135,25 @@ if (goodArgs)
 	}
 }
 
+// filter
+var filter = 'false';
+
+if (goodArgs)
+{
+	if (casper.cli.has("filter"))
+	{
+		filter = 'true';
+	}
+}
+
 if (goodArgs)
 {
 	logMessage("INFO", "Base: "+base_ICAO);
 	logMessage("INFO", "Region: "+region);
 	logMessage("INFO", "min_range: "+min_range);
 	logMessage("INFO", "max_range: "+max_range);
+	logMessage("INFO", "Threshold: "+threshold);
+	logMessage("INFO", "filter: "+filter);
 	logMessage("INFO", "Levels: "+levels);
 }
 else
@@ -170,7 +184,7 @@ casper.then(function() {
 					'Size':    level,
 					'RangeMin':    min_range,
 					'RangeMax':    max_range,
-					'filterOwnRoutes': 'true'
+					'filterOwnRoutes': filter
 				}, false);		
 
 				//console.log(JSON.stringify(this.getFormValues('#searchForm2_0'), null, 4));
