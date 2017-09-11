@@ -30,7 +30,7 @@ changes is an array of change requests of the following form
 
 new_day and turnaround are optional
 */
-casper.retime = function(changes, getSlots)
+casper.retime = function(changes, getSlots, forceFleet)
 {
 	var retVal = false;
 	
@@ -38,6 +38,11 @@ casper.retime = function(changes, getSlots)
 	// if we get no getSlots, assume no slot will be purchased
 	if (getSlots === undefined)
 		getSlots = false;
+
+	// if we get no forceFleet, assume no fleet_type change will be applied
+	if (forceFleet === undefined)
+		forceFleet = false;
+
 
 	// verify that the lists are all the same length
 	if (changes === undefined || !Array.isArray(changes) || changes.length === 0)
@@ -117,21 +122,19 @@ casper.retime = function(changes, getSlots)
 								
 								//require('utils').dump(qmc);
 					
-//require('utils').dump(qmc);
 								// change fleet_type_id first
-								/*
-								if (changeObj.fleet_type_id !== undefined && changeObj.fleet_type_id.match(/^\d+$/))
+								//console.log(JSON.stringify(changeObj, null, 4));
+								if (forceFleet && typeof(changeObj.fleet_type_id) == 'number')
 								{
 									FleetID = 'a' + changeObj.fleet_type_id;
 									this.evaluate(function(fleet_type_id) {
 										$('#FleetID').val(fleet_type_id).change();
-										$('#Turn1').val(70).change();
+										//$('#Turn1').val(70).change();
 									}, FleetID);
 									this.waitWhileVisible('#loadingImage');
 									
 									formData["#FleetID"] = FleetID;
 								}
-								*/
 
 								
 								oldTime.hh = qmc[EditRouteSelectors.outbound_dep_HH.replace(/\#/, '')];

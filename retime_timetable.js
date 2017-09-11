@@ -13,7 +13,8 @@ function usage()
 console.log(argv[0] + requiredArgs.join("\n") + "\n" +
 					  "--h\tthis message" + "\n" +
 					  "--timetable_id=<timetable_id>\tprovided by local DB" + "\n" +
-					  "[--slots]\tpurchase slots" + "\n");
+					  "[--slots]\tpurchase slots" + "\n" +
+					  "[--force]\tforce fleet_type change" + "\n");
 }
 
 
@@ -29,6 +30,13 @@ if (casper.cli.has("slots"))
 {
 	getSlots = true;
 	logMessage("INFO", "Slots will be purchased");
+}
+
+var forceFleet = false;
+if (casper.cli.has("force"))
+{
+	forceFleet = true;
+	logMessage("INFO", "Fleet type changes will be applied");
 }
 logMessage("INFO", "timtable_id = "+timetable_id);
 
@@ -87,7 +95,7 @@ casper.thenOpen('http://localhost/aws/app/v1/games/' + gameID + '/timetables/' +
 
 
 casper.then(function() {
-	var result = casper.retime(changeRequests, getSlots); 
+	var result = casper.retime(changeRequests, getSlots, forceFleet); 
 });	
 
 casper.run();

@@ -23,6 +23,7 @@ var ManageRouteSelectors =
 	'routeRows'	: '#routeviewSel2',
 	'copyRouteLinks'	: 'tr[id^="rData"] > td.BgNr.actionButtons1b > div:nth-child(2) > a.flLeft.routeManageIconAdd',
 	'flightDays'	: x('//*[starts-with(@id, "rData")]/td[2]/table/tbody/tr[3]/td'),
+	'outboundTimes' : x('//*[starts-with(@id, "rData")]/td[2]/table/tbody/tr[1]/td[2]'),
 	'assignedAircraftCell'	: 'tr[id^="rData"] > td:nth-last-child(3)',
 	'assignedAircraft'	: 'tr[id^="rData"] > td:nth-last-child(3) > a:nth-child(1)',
 	'functionSelect' : x('//*[@id="multifunc"]'),

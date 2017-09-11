@@ -13,7 +13,7 @@ logMessage('DEBUG', "Starting login");
 */
 casper.start('https://www.airwaysim.com/', function() {
 
-//this.loadCookies(cookieFile);
+    this.loadCookies(cookieFile);
 	//this.waitForText('CONTACT US', 
 	this.waitForSelector('#contentUpperLogin',
 		function opened() {}, 

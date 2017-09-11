@@ -137,7 +137,7 @@ casper.getAircraftID = function(registration, callback)
 						links[0] = v[i].attributes.id.replace(/currReg/, '');
 					}
 
-				if (links.length == 0)
+				if (links.length === 0)
 				{
 					logMessage('ERROR', "No aircraft match string [" + registration + "]\n" + this.getCurrentUrl());
 					callback(retVal);
@@ -274,6 +274,7 @@ casper.getRouteData = function(aircraftID, callback)
 			var routes = this.getElementsInfo(ManageRouteSelectors.viewRouteLinks);
 			var days = this.getElementsInfo(ManageRouteSelectors.flightDays);
 			var bases = this.getElementsInfo(ManageRouteSelectors.base);
+			var outboundTimes = this.getElementsInfo(ManageRouteSelectors.outboundTimes);
 			var destinations = this.getElementsInfo(ManageRouteSelectors.destination);
 			
 			if (routes.length === 0)
@@ -291,6 +292,7 @@ casper.getRouteData = function(aircraftID, callback)
 				retRoutes[index].flight_number = info.html;
 				retRoutes[index].base_airport_iata = bases[index].text;
 				retRoutes[index].dest_airport_iata = destinations[index].text;
+				retRoutes[index].outbound_dep_time = outboundTimes[index].text.split('-')[0].trim().replace(/(\d{2})(\d{2})/, '$1:$2');
 				retRoutes[index].day = days[index].text.replace(/\D+/g, '');
 			});
 			
@@ -343,7 +345,7 @@ casper.findRouteForNextDay = function(routeData, noSlots, callback)
 			// determine which of the flights is for the next day
 			casper.each(days, function(casper, dayInfo, index2) {
 				var testDay = dayInfo.text.replace(/\D+/g, '');
-				
+				var chgVal = 0;
 				if (testDay == newDay)
 				{
 					var m = routes[index2].attributes.href.match(/game\/Routes\/View\/(\d+)/);
@@ -353,53 +355,100 @@ casper.findRouteForNextDay = function(routeData, noSlots, callback)
 					//logMessage('DEBUG', "Found " + routeData.flight_number + " on " + newDay + "; " + assignedAircraft[index2].attributes.href);
 					//require('utils').dump(assignedAircraft[index2]);
 					if (assignedAircraft[index2].attributes.title.indexOf('tooltip_fleet') == -1)
-					{
+					//{
 						//logMessage('INFO', "findRouteForNextDay() : Next day flight for " + routeData.flight_number + " on " + routeData.day + " already has aircraft assigned " + '@test text@,http://www.airwaysim.com' + routes[index2].attributes.href);
 						nextDayRoute.assigned = true;
-						callback(nextDayRoute);
-					}
-					else
-					{
-						// buy slots if required
-					
-					{
+						//callback(nextDayRoute);
+					//}
+					//else
+					//{
 						this.thenOpen(routeEditURL + nextDayRoute.flight_id, function() {
 							
 							casper.waitForSelector(EditRouteSelectors.confirm, 
 							
 								function found()
 								{
+									// grab fleet type, times etc for the candidate flight 
 									cp = this.getFlightData();
-									cp.flight_number = routeData.flight_number;
-									cp.fleet_type_id = parentAircraftData.fleet_type_id;
+									//console.log(JSON.stringify(cp, null, 4));
+									
+									//cp.flight_number = routeData.flight_number;
+									//cp.fleet_type_id = parentAircraftData.fleet_type_id;
 									cp.flight_model_id = parentAircraftData.fleet_model_id;
 									cp.aircraft_reg = newAircraftData.aircraft_reg;
 
-//console.log(JSON.stringify(cp, null, 4));
-									
+//console.log(JSON.stringify(routeData, null, 4));
+								
 									newFlightDBData["fl_" + cp.flight_id] = cp;
 
-									// tick the "noSlots" checkboxes as required
-									if (!noSlots)
+									// change fleet type and turnaround if required
+									//console.log(routeData.flight_number+" flt: ["+cp.fleet_type_id+"] == ["+parentAircraftData.fleet_type_id+"]");
+									if (cp.fleet_type_id != parentAircraftData.fleet_type_id)
 									{
-										this.click(EditRouteSelectors.confirm);
+										//logMessage('DEBUG', "Changed fleet_type of "+routeData.flight_number+" "+cp.fleet_type_id+" -> "+parentAircraftData.fleet_type_id);
+										cp.fleet_type_id = parentAircraftData.fleet_type_id;
+										this.then(function() {
+											this.evaluate(function(FleetID, Turn1) {
+												$('#FleetID').val(FleetID).change();
+												$('#Turn1').val(Turn1).change();
+											}, 'a' + parentAircraftData.fleet_type_id, routeData.turnaround_length);
+											this.capture("c:/tmp/trash-q.png");
+											chgVal++;
+										});										
+									}
 
-										casper.then(function() {
-											this.waitForText('The route has been updated',
+									// change outbound time if required
+									//console.log(routeData.flight_number+" dep: ["+cp.outbound_dep_time+"] == ["+routeData.outbound_dep_time+"]");
+									if (cp.outbound_dep_time !== routeData.outbound_dep_time)
+									{
+										//logMessage('DEBUG', "Changed time of "+routeData.flight_number+" "+cp.outbound_dep_time+" -> "+routeData.outbound_dep_time );
+										cp.outbound_dep_time = routeData.outbound_dep_time;
 
-											function success() 
-											{
-												//logMessage('DEBUG', "No errors with slot allocation");
-											},
+										var outbound_dep_HH = cp.outbound_dep_time.split(':')[0];
+										var outbound_dep_MM = cp.outbound_dep_time.split(':')[1];
 
-											function timeout() 
-											{
-												nextDayRoute.error = this.fetchText(EditRouteSelectors.confirm);
-											},
-											
-											3000);
+										this.then(function() {
+											this.evaluate(function(HH, MM) {
+												$('#Dep1H').val(HH).change();
+												$('#Dep1M').val(MM).change();
+											}, outbound_dep_HH, outbound_dep_MM);
+											this.capture("c:/tmp/trash-z.png");
+											chgVal++;
 										});
 									}
+
+									// if either time or fleet type have been changed, the flight will need to be rescheduled,
+									// so will no longer be assigned to an aircraft
+									this.then(function()
+									{
+										if (chgVal > 0)
+											nextDayRoute.assigned = false;
+									});
+
+									// tick the "noSlots" checkboxes as required
+									if (noSlots && this.visible(EditRouteSelectors.noSlots1))
+									{
+										this.thenClick(EditRouteSelectors.noSlots1);
+										this.thenClick(EditRouteSelectors.noSlots2);
+										//logMessage("Ignoring slots for "+routeData.flight_number);
+									}
+									
+									this.thenClick(EditRouteSelectors.confirm, 
+										function() {
+											this.waitForText('The route has been updated',
+
+												function success() 
+												{
+													//logMessage('DEBUG', "No errors with slot allocation");
+												},
+
+												function timeout() 
+												{
+													nextDayRoute.error = this.fetchText(EditRouteSelectors.confirm);
+												},
+												
+											3000);
+									});
 								},
 								
 								function timeout()
@@ -409,10 +458,9 @@ casper.findRouteForNextDay = function(routeData, noSlots, callback)
 								10000
 							);
 						});
-					}
 					//logMessage('OK', routeData.flight_number + " is available for schedule on " + weekNumberDays[newDay] + ' http://www.airwaysim.com' + routes[index2].attributes.href);
 						callback(nextDayRoute);
-					}
+					//}
 				}
 				
 				casper.then(function() {
@@ -520,12 +568,12 @@ casper.createNextDay = function(routeData, noSlots, callback)
 			slotCount2 = parseInt(this.fetchText('#slotView2_2 > td.Data > span'));
 			
 			noSlotsVal = noSlots;
-			if (slotCount1 == 0 || slotCount2 == 0)
+			if (slotCount1 === 0 || slotCount2 === 0)
 			{
 				noSlotsVal = true;
 				
 				// note the airport with no slots
-				newFlightData.error = "No slots at " + (slotCount1 == 0 ? routeData.base_airport_iata : routeData.dest_airport_iata);
+				newFlightData.error = "No slots at " + (slotCount1 === 0 ? routeData.base_airport_iata : routeData.dest_airport_iata);
 			}
 			
 			this.fill(EditRouteSelectors.form, {
@@ -553,7 +601,7 @@ casper.createNextDay = function(routeData, noSlots, callback)
 
 			function timeout() {
 				logMessage('ERROR', 
-					flNum + "\t" +
+					routeData.flight_number + "\t" +
 					routeData.base_airport_iata + "-" + routeData.dest_airport_iata + "\t" +
 					days + "\t" +
 					this.getCurrentUrl() + "\t" +
@@ -625,7 +673,7 @@ function ElementInfoReplace(name, val)
 casper.assignRoutesToAircraft = function(routes, aircraftData, callback)
 {
 	var flightsSeen = [];
-	var base_id = "";
+	var base_id = "5237";
 	
 	// check whether we have all the routes or not; we do all or nothing
 	casper.each(routes, function(casper, routeData, index) {
@@ -635,12 +683,23 @@ casper.assignRoutesToAircraft = function(routes, aircraftData, callback)
 			callback(false);
 		}
 	});
+	var base_id_sel = x('//*[@id="BaseID' + aircraftData.aircraft_id + '"]');
+	
+	//var base_id_sel = '[id^="BaseID"]';// + aircraftData.aircraft_id;
 	
 	// get base_id
-	casper.then(function()
-	{
-		base_id = this.getElementInfo('#BaseID' + aircraftData.aircraft_id).text.trim();
-	});
+	casper.waitForSelector(base_id_sel, 
+		function()
+		{
+			base_id = this.getElementInfo(base_id_sel).text.trim();
+		}, 
+		
+		function() {
+			console.log("Selector "+base_id_sel+" not found");
+			//console.log(this.getHTML());
+			//callback(false);
+		},
+	6000);
 
 	logMessage('INFO', "Assigning " + routes.length + " routes to aircraft " + aircraftData.aircraft_reg + " " + scheduleAircraftIDURL + aircraftData.aircraft_id);
 
@@ -858,7 +917,7 @@ available_routes = this.getElementInfo(ScheduleSelectors.addFlightsForm).html.ma
 							casper.exit(1);
 						},
 					
-						1500);
+						8000);
 			});
 			});
 		},
@@ -975,13 +1034,18 @@ casper.buildNextDayRoutes = function(parentRoutes, aircraftData, noSlots, callba
 	@param callback callback function for returning results
 	@return true on success, false otherwise
 */
-casper.assignMaintenanceToAircraft = function(aircraftData, day, hour, minute, callback)
+casper.assignMaintenanceToAircraft = function(aircraftData, day, hour, minute, callback, mtxA, mtxB)
 {
 	if (aircraftData.aircraft_id === undefined || aircraftData.aircraft_id === -1)
 	{
 		callback(false);
 		return 0;
 	}
+	
+	if (mtxA === undefined)
+		mtxA = false;
+	if (mtxB === undefined)
+		mtxB = false;
 
 	this.thenOpen(scheduleAircraftIDURL + aircraftData.aircraft_id, function() {
 		if (this.visible('#loadingAnimation'))
@@ -1016,11 +1080,11 @@ casper.assignMaintenanceToAircraft = function(aircraftData, day, hour, minute, c
 							//formData[ScheduleSelectors.pattern_maintenanceADay.replace('%DAY%', day)] = true;
 							formData[ScheduleSelectors.maintenanceAHour] = hour;
 							formData[ScheduleSelectors.maintenanceAMinute] = minute;
-							formData[ScheduleSelectors.maintenanceANow] = false;
+							formData[ScheduleSelectors.maintenanceANow] = mtxA;
 							//formData[ScheduleSelectors.maintenanceBDay] = day;
 							//formData[ScheduleSelectors.maintenanceBHour] = hour;
 							//formData[ScheduleSelectors.maintenanceBMinute] = minute;
-							formData[ScheduleSelectors.maintenanceBNow] = false;
+							formData[ScheduleSelectors.maintenanceBNow] = mtxB;
 							//formData[ScheduleSelectors.maintenanceSameForB] = true;	// generally the case
 							
 							
@@ -1063,6 +1127,7 @@ casper.assignMaintenanceToAircraft = function(aircraftData, day, hour, minute, c
 								{
 									if (this.visible(ScheduleSelectors.routeError))
 									{
+										console.log(JSON.stringify(this.getElementInfo(ScheduleSelectors.routeError), null, 4));
 										logMessage('ERROR', "assignMaintenanceToAircraft(): Error adding maintenance to " + aircraftData.aircraft_reg + ": overlapping flights");
 										callback(false);
 									}

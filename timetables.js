@@ -16,13 +16,13 @@ function DayNameToNumber(dd)
 {
 	switch(dd)
 	{
-		case 'Mo': return 1; break;
-		case 'Tu': return 2; break;
-		case 'We': return 3; break;
-		case 'Th': return 4; break;
-		case 'Fr': return 5; break;
-		case 'Sa': return 6; break;
-		case 'Su': return 7; break;
+		case 'Mo': return 1; 
+		case 'Tu': return 2; 
+		case 'We': return 3; 
+		case 'Th': return 4; 
+		case 'Fr': return 5;
+		case 'Sa': return 6;
+		case 'Su': return 7;
 		default: return -1;
 	}
 }
@@ -85,28 +85,37 @@ var a_reg = [];
 
 casper.thenOpen('http://www.airwaysim.com/game/Aircraft/My?Keyword=' + aircraftParam,
 
+				
 function processLinks()
 {
 	pageNr++;
 
+
+	this.waitForSelector(ViewAircraftSelectors.aircraft_reg, 
+		function()
+		{
+			var acIDs = this.getElementsInfo(ViewAircraftSelectors.boozer);
+			//console.log(JSON.stringify(acIDs));
+			var dataRows = [];
+			
+			var regList = this.getElementsInfo(ViewAircraftSelectors.aircraft_reg);
+			for (xc=0; xc < regList.length; xc++)
+				a_reg.push(regList[xc].text);
+			
+			for(var index=0; index < acIDs.length; index++) 
+			{
+				dataRows[index] = acIDs[index].attributes.id.replace('Model', 
+					'http://www.airwaysim.com/game/Routes/Schedules/?filterAircraft=');
+			}
+	logMessage('DEBUG', "Got " + dataRows.length + " aircraft on page " + pageNr);
+			
+			links.push.apply( links, dataRows );			
+		}
+	);
 	//console.log('Processing page ' + pageNr);
 
-	this.waitForSelector(ViewAircraftSelectors.functionSelect);
 
-	var acIDs = this.getElementsInfo(ViewAircraftSelectors.boozer);
-	var dataRows = [];
 	
-	var regList = this.getElementsInfo(ViewAircraftSelectors.aircraft_reg);
-	for (xc=0; xc < regList.length; xc++)
-		a_reg.push(regList[xc].text);
-	
-	for(var index=0; index < acIDs.length; index++) {
-		dataRows[index] = acIDs[index].attributes.id.replace('Model', 'http://www.airwaysim.com/game/Routes/Schedules/?filterAircraft=');
-	}
-	
-	links.push.apply( links, dataRows );
-	
-	logMessage('DEBUG', "Got " + dataRows.length + " aircraft on page " + pageNr);
 
 	// traverse all pages
 	if (this.exists(ViewAircraftSelectors.pageSelector))
@@ -138,6 +147,7 @@ casper.then(function() {
 
 casper.each(links, function(casper, schedule_link, index) {
 casper.thenOpen(schedule_link);
+//console.log(JSON.stringify(schedule_link));
 
 casper.waitForSelector('[id^="tooltip"]' + ScheduleSelectors.tooltip_flight_number, //ScheduleSelectors.timetableEntry, 
 //casper.waitForSelector(ScheduleSelectors.timetableEntry, 

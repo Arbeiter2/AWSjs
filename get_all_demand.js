@@ -7,7 +7,7 @@ phantom.libraryPath = '/home/delano/js';
 phantom.injectJs( './global.js'); 
 phantom.injectJs( 'selectors.js'); 
 
-var options = ['game_id', 'base', 'region', 'min-range', 
+var options = ['game_id', 'base', 'region', 'min-range', 'min-demand',
 			   'max-range', 'threshold', 'level', 'filter'];
 var goodArgs = true;
 function usage()
@@ -18,6 +18,7 @@ console.log(argv[0] + requiredArgs.join("\n") + "\n" +
 					  "--region=<region code> (WO|NA|EU|AF|AS|SA|OC)\n" +
 					  "[--min-range=<minimum range>]\n" +
 					  "[--max-range=<maximum range>]\n" +
+					  "[--min-demand=<minimum demand>]\n" +
 					  "[--threshold=<min demand>]\n" +
 					  "[--filter (ignore routes currently flown)]\n" +
 					  "--level=<airport level>[+] (0=All|1=Insignificant|2=Small|3=Middle-size|4=Significant|5=Large");
@@ -135,16 +136,36 @@ if (goodArgs)
 	}
 }
 
+// min_demand
+if (goodArgs)
+{
+	var min_demand = "0";
+	if (casper.cli.has("min-demand"))
+	{
+		min_demand = parseInt(casper.cli.get("min-demand"));
+		if (min_demand < 0)
+		{
+			goodArgs = false;
+		}
+	}
+}
+
 // filter
-var filter = 'false';
+var filter = false;
 
 if (goodArgs)
 {
 	if (casper.cli.has("filter"))
 	{
-		filter = 'true';
+		filter = true;
 	}
+	
+	// either min_demand or threshold must be set
+	if (min_demand == 0 && threshold == 0)
+		goodArgs = false;
 }
+
+
 
 if (goodArgs)
 {
@@ -152,9 +173,10 @@ if (goodArgs)
 	logMessage("INFO", "Region: "+region);
 	logMessage("INFO", "min_range: "+min_range);
 	logMessage("INFO", "max_range: "+max_range);
-	logMessage("INFO", "Threshold: "+threshold);
+	logMessage("INFO", "min_demand: "+min_demand);
+	logMessage("INFO", "threshold: "+threshold);
 	logMessage("INFO", "filter: "+filter);
-	logMessage("INFO", "Levels: "+levels);
+	logMessage("INFO", "levels: "+levels);
 }
 else
 {
@@ -371,14 +393,23 @@ var net_daily_supply = [0,0,0,0,0,0,0];
 	var distance_nm = parseInt((this.fetchText(x('//*[@id="routePlanningData"]/div/div[2]/table[1]/thead/tr[3]/td[2]')).trim().split(/ /))[0]);
 	//console.log(dest_ICAO + "," + dest_IATA );
 	
+    var obj = { airport: dest_ICAO,
+				iata_code: dest_IATA,
+				distance: distance_nm,
+				demand: demand,
+				supply: supply,
+				my_supply: my_supply };
+   
 	//console.log(dest_IATA, distance_nm, demand, supply);
-	if (demand - supply >= threshold)
-		results.push({ airport: dest_ICAO, 
-			iata_code: dest_IATA, 
-			distance: distance_nm, 
-			demand: demand, 
-			supply: supply, 
-			my_supply: my_supply });
+	if ((threshold > 0 && demand - supply >= threshold) || (min_demand > 0 && demand >= min_demand))
+	{
+		results.push(obj);
+		//console.log("Adding "+JSON.stringify(obj));                   
+	}
+	else
+	{
+		//console.log("Below threshold "+JSON.stringify(obj));
+	}
 
 	},
 

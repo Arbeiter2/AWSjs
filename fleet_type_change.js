@@ -87,7 +87,7 @@ else
 
 //casper.viewportSize = {width: 1024, height: 768};
 var RESThost = 'http://localhost/aws/app/v1/';
-var RESTflights = RESThost +  'games/' + gameID + '/flights';
+var RESTflights = RESThost +  'games/' + gameID + '/flights/';
 
 
 var host = 'http://www.airwaysim.com';
@@ -142,6 +142,7 @@ casper.then(
 	}
 );
 
+allFlightData = [];
 casper.then( function() {
 casper.each(links, function(casper, flight_link, index) {
 	var flightDataObj;
@@ -189,18 +190,21 @@ casper.each(links, function(casper, flight_link, index) {
 		//console.log(JSON.stringify(this.getElementInfo('#loadingAnimation'), null, 4));
 
 		
-		this.thenClick('#confBtn', function() {
-			this.waitForText('The route has been updated.', function() { 
-				this.thenOpen(RESTflights, {
+//		this.thenClick('#confBtn', function() {
+//			this.waitForText('The route has been updated.', function() { 
+//console.log(RESTflights + '/' + flightDataObj.flight_id, JSON.stringify(flightDataObj));
+allFlightData.push(flightDataObj);
+
+/*				this.thenOpen(RESTflights + flightDataObj.flight_id, {
 						method: 'post',
 						data:   flightDataObj
 					},
 					
 					function()
 					{
-						logMessage("OK",  '@' + flightDataObj.flight_number + '@,' + 'http://www.airwaysim.com/Routes/View/' + flightDataObj.flight_id + "\t" + 
+*/						logMessage("OK",  '@' + flightDataObj.flight_number + '@,' + 'http://www.airwaysim.com/Routes/View/' + flightDataObj.flight_id + "\t" + 
 								flightDataObj.base_airport_iata + "-" + flightDataObj.dest_airport_iata);
-					});
+/*					});
 				},
 				
 				function timeout() {
@@ -208,11 +212,31 @@ casper.each(links, function(casper, flight_link, index) {
 				},
 				
 				10000); 			
-		});
-	});
+//		});
+//	});
+*/
+});
+});
 
 });
-});
+
+
+
+casper.thenOpen(RESTflights,
+	{
+		method: 'post',
+       headers: {
+           'Content-Type': 'application/json',
+       },
+	   data: allFlightData
+	},
+	
+	function(response) {
+		//console.log(JSON.stringify(response));
+		//console.log(JSON.stringify(allFlightData));
+		
+	});
+	
 
 	
 
