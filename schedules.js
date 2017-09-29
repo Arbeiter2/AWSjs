@@ -431,6 +431,7 @@ casper.findRouteForNextDay = function(routeData, noSlots, callback)
 										this.thenClick(EditRouteSelectors.noSlots1);
 										this.thenClick(EditRouteSelectors.noSlots2);
 										//logMessage("Ignoring slots for "+routeData.flight_number);
+										chgVal++;
 									}
 									
 									this.thenClick(EditRouteSelectors.confirm, 
@@ -1032,6 +1033,8 @@ casper.buildNextDayRoutes = function(parentRoutes, aircraftData, noSlots, callba
 	@param hour HH24 start time
 	@param minute start time (5-minute precision)
 	@param callback callback function for returning results
+	@param mtxA perform A check
+	@param mtxB perform B check
 	@return true on success, false otherwise
 */
 casper.assignMaintenanceToAircraft = function(aircraftData, day, hour, minute, callback, mtxA, mtxB)
@@ -1089,7 +1092,7 @@ casper.assignMaintenanceToAircraft = function(aircraftData, day, hour, minute, c
 							
 							
 					
-					
+							// fill form elements with .change() handlers, and submit
 							this.then(function() {
 								this.click('#dialogAddMaintADay' + day.toString());
 								this.evaluate(function(h, m) {

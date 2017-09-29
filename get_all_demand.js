@@ -69,13 +69,14 @@ if (goodArgs)
 if (goodArgs)
 {
 	var levelStr = casper.cli.get("level").toString();
+	var levelOp = "=";
 	if (levelStr.match(/^[0-5]\+?$/) === null)
 	{
 		goodArgs = false;
 	}
 	else
 	{
-		var levels = [];
+/* 		var levels = [];
 		if (levelStr[0] === "0")
 			levels = levelStr[0];
 		else
@@ -89,7 +90,12 @@ if (goodArgs)
 			{
 				levels.push(levelStr);
 			}
+		} */
+		if (levelStr[levelStr.length-1] == '+')
+		{
+			levelOp = ">=";
 		}
+		levels = levelOp + ' ' + levelStr[0];
 	}
 }
 
@@ -161,7 +167,7 @@ if (goodArgs)
 	}
 	
 	// either min_demand or threshold must be set
-	if (min_demand == 0 && threshold == 0)
+	if (min_demand === 0 && threshold === 0)
 		goodArgs = false;
 }
 
@@ -192,42 +198,45 @@ var pageNr = 0;
 
 
 casper.then(function() {
-	casper.each(levels, function(casper, level) {
-		casper.thenOpen("http://www.airwaysim.com/game/Routes/Planning/" + base_ICAO, function() {
-			this.waitUntilVisible('#airportSelectedTable_1_0 > div.borderOuter > div.borderInner.smallDataBox2 > table > thead > tr:nth-child(2) > td > a', 
+	casper.thenOpen("http://www.airwaysim.com/game/Routes/Planning/" + base_ICAO, function() {
+		this.waitUntilVisible('#airportSelectedTable_1_0 > div.borderOuter > div.borderInner.smallDataBox2 > table > thead > tr:nth-child(2) > td > a', 
+		
+		function() {
+			// fill in the form
+			this.evaluate(function(area, operator) {
+				$('#Area_2_0').val(area).change();
+
+				var valofText = $("#filter-Size" + " option").filter(function() {
+					return this.text.trim() == operator;
+				}).val();
+				$('#filter-Size').val(valofText);					
+			}, region, escape(levelOp));
 			
-			function() {
-				// fill in the form
-				this.evaluate(function(area) {
-					$('#Area_2_0').val(area).change();
-				}, region);
-				
-				this.fill('#searchForm2_0', {
-					'Size':    level,
-					'RangeMin':    min_range,
-					'RangeMax':    max_range,
-					'filterOwnRoutes': filter
-				}, false);		
+			this.fill('#searchForm2_0', {
+				'Size':    levelStr[0],
+				'RangeMin':    min_range,
+				'RangeMax':    max_range,
+				'filterOwnRoutes': filter
+			}, false);		
 
-				//console.log(JSON.stringify(this.getFormValues('#searchForm2_0'), null, 4));
-				
-				this.thenClick('#airportSearch_2_0 > thead > tr:nth-child(2) > td.Bg3.alCenter > input[type="submit"]', function() {
-					this.waitForText('Number of results: ', function() {
-					resCount = this.fetchText('#airportSearchTable_2_0 > div.borderOuter > div.borderInner.smallDataBox2 > table > thead > tr:nth-child(1) > td.BgNr.alRight');
-
-					//console.log("resCount = " +resCount.replace(/\D+/, ''));
-					processLinks();
-					});
-				});		
-			}, 
+			//console.log(JSON.stringify(this.getFormValues('#searchForm2_0'), null, 4));
 			
-			
-			function() { console.log ("timeout");}, 3000);
+			this.thenClick('#airportSearch_2_0 > thead > tr:nth-child(2) > td.Bg3.alCenter > input[type="submit"]', function() {
+				this.waitForText('Number of results: ', function() {
+				resCount = this.fetchText('#airportSearchTable_2_0 > div.borderOuter > div.borderInner.smallDataBox2 > table > thead > tr:nth-child(1) > td.BgNr.alRight');
+
+				//console.log("resCount = " +resCount.replace(/\D+/, ''));
+				processLinks();
+				});
+			});		
+		}, 
+		
+		
+		function() { console.log ("timeout");}, 3000);
 
 
-		});
 	});
-})
+});
 
 var nextPageBtn = '#airportSearchTable_2_0 > div.borderOuter > div.borderInner.smallDataBox2 > div.listingTableButtons > div.listingButton.flRight.alRight > button';
 
