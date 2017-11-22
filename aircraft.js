@@ -8,7 +8,7 @@ var host = 'http://www.airwaysim.com';
 var postDataObj = {};
 postDataObj.game_id	= gameID;
 
-var aircraftData = {};
+var aircraftData = [];
 
 var links = [];
 var pageNr = 0;
@@ -65,7 +65,9 @@ var nAircraftProcessed = 0;
 
 casper.then(function () {
 	logHTML("<table class='CSSTableGenerator'>\n<thead>\n<tr><td>Aircraft<br />Reg</td><td>Type</td><td>Base</td></tr>\n</thead>\n<tbody>\n");
-});		
+});
+
+var flights = '#noBorderArea2 > div.borderOuter.flLeft > div.borderInner.smallDataBox > table > tbody > tr > td:nth-child(1) > a';
 
 casper.then(function () {
 	for (i=0; i < links.length; i++)
@@ -78,7 +80,7 @@ casper.then(function () {
 				function()
 				{
 					// aircraft in storage have no base details, so we bomb
-					if (!this.exists(ViewAircraftSelectors.baseAirportLink))
+					if (this.exists('#normalDataButtons > a.flLeft.aircraftManageIcon6'))
 					{
 						logMessage("INFO", "Aircraft in storage; ignoring");
 						return;
@@ -99,6 +101,7 @@ casper.then(function () {
 					aircraftDataObj.model_description = this.getHTML('div[id^=modelName]').trim();
 					aircraftDataObj.MSN = this.getHTML('#aircraftData > table > tbody > tr:nth-child(6) > td.Bg1 > a').replace(/\D+/, '');
 					aircraftDataObj.aircraft_reg = this.getElementInfo(ViewAircraftSelectors.registrationLink).text.trim();
+					//console.log(aircraftDataObj.aircraft_reg);
 					aircraftDataObj.base_iata_code = this.getElementInfo(ViewAircraftSelectors.baseAirportLink).text.trim();		
 					aircraftDataObj.engines = this.getHTML(ViewAircraftSelectors.engines).trim();
 					aircraftDataObj.variant = this.getHTML(ViewAircraftSelectors.variant).trim();
@@ -112,17 +115,20 @@ casper.then(function () {
 					aircraftDataObj.seats_F = (m[2].split(/:\s+/))[1];
 					
 					// flight data
-					var qa = this.getElementsInfo('#noBorderArea2 > div.borderOuter.flLeft > div.borderInner.smallDataBox > table > tbody > tr > td:nth-child(1) > a');
-					aircraftDataObj.flight_id = qa.map(function (obj, idx, arr) {
-						return (obj.attributes.href.split(/\//))[4];
-					});
+					if (this.exists(flights))
+					{
+						var qa = this.getElementsInfo(flights);
+						aircraftDataObj.flight_id = qa.map(function (obj, idx, arr) {
+							return (obj.attributes.href.split(/\//))[4];
+						});
+					}
 					
 //console.log(JSON.stringify(aircraftDataObj));
 //require('utils').dump(aircraftDataObj);
 					//logMessage('OK', "@" + aircraftDataObj.aircraft_reg + "@," + this.getCurrentUrl() + "\t" + aircraftDataObj.model_description + "\t" + aircraftDataObj.base_airport_iata );
 					
 					// add the new data to the growing array
-					aircraftData["ac_" + aircraftDataObj.aircraft_id] = aircraftDataObj;
+					aircraftData.push(aircraftDataObj);
 //console.log(JSON.stringify(aircraftData["ac_" + aircraftDataObj.aircraft_id]));
 
 				},
@@ -141,6 +147,7 @@ casper.then(function () {
 casper.then (function() 
 {
 	postDataObj.aircraft_data = JSON.stringify(aircraftData);
+	console.log(postDataObj.aircraft_data);
 	
 	casper.open('http://localhost/aws/add_aircraft.php',
 	{
