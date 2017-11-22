@@ -937,7 +937,8 @@ available_routes = this.getElementInfo(ScheduleSelectors.addFlightsForm).html.ma
 	buildNextDayRoutes
 	
 	@param parentRoutes array of object { flight_id, flight_number, day } of flights on parent aircraft
-	@param aircraftID AWS internal ID of source aircraft
+	@param aircraftData aircraft ID, base, etc. of source aircraft
+	@param noSlots do not buy slots if true
 	@param callback callback function for returning results
 	@return array of object { flight_id, flight_number, day } of next-day flights that are available to be assigned
 */
@@ -1028,7 +1029,7 @@ casper.buildNextDayRoutes = function(parentRoutes, aircraftData, noSlots, callba
 /*
 	assignMaintenanceToAircraft
 	
-	@param aircraftID AWS internal ID of aircraft
+	@param aircraftData aircraft ID, base, etc. of target aircraft
 	@param day zero-indexed day of the week
 	@param hour HH24 start time
 	@param minute start time (5-minute precision)
@@ -1204,7 +1205,7 @@ casper.sendFlightsToDB = function (flightData)
 		postDataObj.game_id = gameID;
 		postDataObj.newFlightData = JSON.stringify(flightData);
 
-		casper.thenOpen('http://localhost/aws/add_routes.php',
+		casper.thenOpen('http://localhost/aws/app/v1/games/' + gameID + '/flights',
 		{
 			method: 'post',
 			data: postDataObj
@@ -1212,11 +1213,21 @@ casper.sendFlightsToDB = function (flightData)
 	}	
 };
 
+
+/*
+	__addNextDay - for timetable on parentAircraft, create next day routes and assign to newAircraft
+
+	@param parentAircraft object containing details of parent aircraft
+	@param noSlots if true, do not buy slots on new routes
+	@param newAircraft object containing details of destination aircraft
+
+*/
 function __addNextDay(parentAircraft, noSlots, newAircraft)
 {
 	var parentRoutes = [];
 	var nextDayRoutes = [];
 	
+	// get details of parent aircraft, crash if it doesn't exist
 	casper.then(function()
 	{
 		casper.verifyAircraft(parentAircraft, function (data) {
