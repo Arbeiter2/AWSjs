@@ -70,7 +70,7 @@ if (goodArgs)
 {
 	var levelStr = casper.cli.get("level").toString();
 	var levelOp = "=";
-	if (levelStr.match(/^[0-5]\+?$/) === null)
+	if (levelStr.match(/^([0-9]|10)\+?$/) === null)
 	{
 		goodArgs = false;
 	}
@@ -199,21 +199,22 @@ var pageNr = 0;
 
 casper.then(function() {
 	casper.thenOpen("http://www.airwaysim.com/game/Routes/Planning/" + base_ICAO, function() {
-		this.waitUntilVisible('#airportSelectedTable_1_0 > div.borderOuter > div.borderInner.smallDataBox2 > table > thead > tr:nth-child(2) > td > a', 
+		this.waitUntilVisible('#airportSelectedTable_1_0 > div.borderOuter > div.borderInner.smallDataBox2 > table > thead > tr:nth-child(2) > td > div.flLeft > a', 
 		
 		function() {
 			// fill in the form
 			this.evaluate(function(area, operator) {
 				$('#Area_2_0').val(area).change();
 
-				var valofText = $("#filter-Size" + " option").filter(function() {
+				var valofText = $("#filter-trafficSize" + " option").filter(function() {
 					return this.text.trim() == operator;
 				}).val();
-				$('#filter-Size').val(valofText);					
+				$('#filter-trafficSize').val(valofText);					
 			}, region, escape(levelOp));
 			
 			this.fill('#searchForm2_0', {
-				'Size':    levelStr[0],
+	//			'Size':    levelStr[0],
+				'trafficSize': levelStr[0],
 				'RangeMin':    min_range,
 				'RangeMax':    max_range,
 				'filterOwnRoutes': filter
@@ -232,7 +233,7 @@ casper.then(function() {
 		}, 
 		
 		
-		function() { console.log ("timeout");}, 3000);
+		function() { console.log ("timeout");}, 10000);
 
 
 	});
@@ -270,7 +271,8 @@ function processLinks()
 
 				this.thenClick(nextPageBtn, function() {
 						//casper.waitForSelectorTextChange(ManageRouteSelectors.currentPage, //function() {
-						casper.waitForSelector(highlightedPage,
+						//casper.waitForSelector(highlightedPage,
+						casper.waitForSelectorTextChange ('#airportSearchTable_2_0 > div.borderOuter > div.borderInner.smallDataBox2 > table > tbody > tr:nth-child(1) > td:nth-child(2)',
 
 						function found() {
 							casper.then(processLinks);
