@@ -24,6 +24,13 @@ else
     casper.exit(1);
 }
 
+var time = "12:00";
+if (casper.cli.has('time'))
+{
+    time = casper.cli.get('time');
+	console.log("Using start time ["+time+"]");
+}
+
 /*
 var flightData = [
 { 'from_icao_code': 'EINN', 'to_icao_code': 'EHAM', 'fleet_type_id': '22', 'count': 2 },
@@ -41,7 +48,7 @@ casper.then(function() {
 			f.count = 1;
 		this.repeat(f.count, function() {
 			//this.wait(1000, function() {
-				this.createFlights(f.from_icao_code, f.to_icao_code, f.fleet_type_id, null, null, function(obj) { results.push(obj); } );
+				this.createFlights(f.from_icao_code, f.to_icao_code, f.fleet_type_id, null, time, function(obj) { results.push(obj); } );
 			//});
 			//console.log("results=\n"+JSON.stringify(results, null, 4));
 		});

@@ -1,10 +1,8 @@
 #!/bin/bash
 
-SCRIPT_PATH="/home/delano/js"
+SCRIPT_PATH="/media/store/js"
 LOCKFILE_PATH="/var/tmp"
 COOKIES="--cookies-file=${SCRIPT_PATH}/cookies2.txt"
-
-PATH=/opt/apache-jena-3.0.0/bin:/opt/weka:/home/delano/perl5/bin:/opt/apache-jena-3.0.0/bin:/opt/weka:/home/delano/perl5/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/local/hadoop/bin:/usr/local/hadoop/sbin:/usr/local/lib/node_modules/casperjs/bin:/usr/local/lib/node_modules/phantomjs/bin:/usr/local/hadoop/bin:/usr/local/hadoop/sbin
 
 
 SELF=$0
@@ -24,6 +22,8 @@ fi
 
 
 # ARG now contains only the arguments to the script (if any)
+
+cd ${SCRIPT_PATH}
 
 start_command()
 {
@@ -45,7 +45,7 @@ fi
 echo $$ > ${LOCKFILE_PATH}/${SCRIPT_NAME}.lock
 
 #echo /usr/local/bin/casperjs ${COOKIES} ${SCRIPT_PATH}/${SCRIPT_NAME} ${ARGV[*]}
-/usr/local/lib/node_modules/casperjs/bin/casperjs ${COOKIES} ${SCRIPT_PATH}/${SCRIPT_NAME} ${ARGV[*]}
+/usr/local/bin/casperjs ${COOKIES} ${SCRIPT_PATH}/${SCRIPT_NAME} ${ARGV[*]}
 
 rm ${LOCKFILE_PATH}/${SCRIPT_NAME}.lock
 }

@@ -206,11 +206,10 @@ casper.then(function() {
 			this.evaluate(function(area, operator) {
 				$('#Area_2_0').val(area).change();
 
-				var valofText = $("#filter-trafficSize" + " option").filter(function() {
+				$("#filter-trafficSize" + " option").filter(function() {
 					return this.text.trim() == operator;
-				}).val();
-				$('#filter-trafficSize').val(valofText);					
-			}, region, escape(levelOp));
+				}).prop('selected', true);
+			}, region, levelOp);
 			
 			this.fill('#searchForm2_0', {
 	//			'Size':    levelStr[0],
@@ -233,7 +232,11 @@ casper.then(function() {
 		}, 
 		
 		
-		function() { console.log ("timeout");}, 10000);
+		function()
+		{
+			this.capture('../tmp/xrerror.png');
+			console.log ("timeout");
+		}, 20000);
 
 
 	});

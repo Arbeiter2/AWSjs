@@ -179,7 +179,10 @@ casper.getTimetableGaps = function(timetableData, callback)
 				acTooltips = (this.exists(ManageRouteSelectors.aircraftTooltip) ? this.getElementsInfo(ManageRouteSelectors.aircraftTooltip) : null);
 				
 				if (acTooltips === null)
+				{
 					timetableObj.validFlight = false;
+					console.log(timetableObj.firstFlight, JSON.stringify(acTooltips, null, 4));
+				}
 				else //if (aircraftLinks.length == acTooltips.length)
 				{
 					timetableObj.validFlight = true;
@@ -211,7 +214,7 @@ this.capture('c:/temp/xrerror.png');
 					// we know the flight is correctly allocated
 					if (acData[1].text !== "" && parseInt(q, 10) - 1 <= 6)
 					{
-						//logMessage('DEBUG', "flight " + timetableObj.firstFlight + ", day = " + q + ", a/c = " + acData[1].text);
+						logMessage('DEBUG', "flight " + timetableObj.firstFlight + ", day = " + q + ", a/c = " + acData[1].text);
 						
 						// record the a/c reg flying that specific day
 						var reg = acData[1].text;
@@ -230,7 +233,7 @@ this.capture('c:/temp/xrerror.png');
 					}
 					else
 					{
-						//logMessage('DEBUG', "Flight " + timetableObj.firstFlight + " on day " + q + " not assigned to any aircraft");
+						logMessage('DEBUG', "Flight " + timetableObj.firstFlight + " on day " + q + " not assigned to any aircraft");
 					}
 				});
 			}

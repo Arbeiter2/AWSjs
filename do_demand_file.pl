@@ -39,6 +39,7 @@ while (<FH>)
 
 	my $s = "{ 'from_icao_code': '$base_airport_icao', " . 
 			"'to_icao_code': '$fields[0]', " .
+			"'to_iata_code': '$fields[1]', " .
 			"'fleet_type_id': '$fleet_type_id', " .
 			"'count': " . ($count < $max_flights ? $count : $max_flights) . "},\n";
 	print($s);

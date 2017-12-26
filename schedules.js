@@ -705,6 +705,7 @@ casper.assignRoutesToAircraft = function(routes, aircraftData, callback)
 	logMessage('INFO', "Assigning " + routes.length + " routes to aircraft " + aircraftData.aircraft_reg + " " + scheduleAircraftIDURL + aircraftData.aircraft_id);
 
 	// now we open the new aircraft's schedule and get to work
+	var searchURL = scheduleAircraftIDURL + aircraftData.aircraft_id;
 	casper.thenOpen(scheduleAircraftIDURL + aircraftData.aircraft_id, function() {
 	casper.waitForSelector(ScheduleSelectors.addFlightsBtn, 
 		function found()
@@ -875,7 +876,7 @@ available_routes = this.getElementInfo(ScheduleSelectors.addFlightsForm).html.ma
 									}
 								},
 								
-								15000
+								8000
 							);							
 						});
 				});
