@@ -24,11 +24,10 @@ console.log(argv[0] + requiredArgs.join("\n") + "\n" +
 					  "--level=<airport level>[+] (0=All|1=Insignificant|2=Small|3=Middle-size|4=Significant|5=Large");
 }
 
-var url = 'http://www.airwaysim.com/game/Routes/Planning/X/'; 
 var links = [];
 var i = 0;
 
-for (opt in casper.cli.options)
+for (var opt in casper.cli.options)
 {
 	if (opt === 'casper-path' || opt == 'cli' || opt == 'silent' || opt == 'html')
 		continue;
@@ -76,26 +75,12 @@ if (goodArgs)
 	}
 	else
 	{
-/* 		var levels = [];
-		if (levelStr[0] === "0")
-			levels = levelStr[0];
-		else
-		{
-			if (levelStr[levelStr.length-1] == '+')
-			{
-				for (var i=parseInt(levelStr[0], 10); i <=5; i++)
-					levels.push('' + i);
-			}
-			else
-			{
-				levels.push(levelStr);
-			}
-		} */
 		if (levelStr[levelStr.length-1] == '+')
 		{
 			levelOp = ">=";
+			levelStr = levelStr.slice(0, levelStr.length-1);
 		}
-		levels = levelOp + ' ' + levelStr[0];
+		levels = levelOp + ' ' + levelStr;
 	}
 }
 
@@ -199,7 +184,7 @@ var pageNr = 0;
 
 casper.then(function() {
 	casper.thenOpen("http://www.airwaysim.com/game/Routes/Planning/" + base_ICAO, function() {
-		this.waitUntilVisible('#airportSelectedTable_1_0 > div.borderOuter > div.borderInner.smallDataBox2 > table > thead > tr:nth-child(2) > td > div.flLeft > a', 
+		this.waitUntilVisible('#airportSelectedTable_1_0 > div.borderOuter > div.borderInner.smallDataBox2 > table > thead > tr:nth-child(2)', 
 		
 		function() {
 			// fill in the form
@@ -213,7 +198,7 @@ casper.then(function() {
 			
 			this.fill('#searchForm2_0', {
 	//			'Size':    levelStr[0],
-				'trafficSize': levelStr[0],
+				'trafficSize': levelStr,
 				'RangeMin':    min_range,
 				'RangeMax':    max_range,
 				'filterOwnRoutes': filter
@@ -273,21 +258,19 @@ function processLinks()
 			{
 
 				this.thenClick(nextPageBtn, function() {
-						//casper.waitForSelectorTextChange(ManageRouteSelectors.currentPage, //function() {
-						//casper.waitForSelector(highlightedPage,
-						casper.waitForSelectorTextChange ('#airportSearchTable_2_0 > div.borderOuter > div.borderInner.smallDataBox2 > table > tbody > tr:nth-child(1) > td:nth-child(2)',
+					casper.waitForSelectorTextChange ('#airportSearchTable_2_0 > div.borderOuter > div.borderInner.smallDataBox2 > table > tbody > tr:nth-child(1) > td:nth-child(2)',
 
-						function found() {
-							casper.then(processLinks);
-						},
-						
-						function timeout() {
-							logMessage('DEBUG', "Dead");
+					function found() {
+						casper.then(processLinks);
+					},
 					
-							dead = true;
-						}, 
-						15000);
-					});
+					function timeout() {
+						logMessage('DEBUG', "Dead");
+				
+						dead = true;
+					}, 
+					15000);
+				});
 
 			}
 			else
@@ -303,257 +286,181 @@ function processLinks()
 casper.then(function()
 {
 	//console.log(JSON.stringify(Object.keys(ICAO_Codes)));
-	this.getDemandFromDestList(Object.keys(ICAO_Codes));
+	this.getDemandFromDestList(base_ICAO, Object.keys(ICAO_Codes),  threshold, min_demand, function(x) 
+	{
+		results = x; 
+
+		casper.then(function() {
+			//console.log("results =\n" + JSON.stringify(results, null, 4));
+			header_str = "ICAO,IATA,dist_nm,demand,supply,my_supply"; 
+			
+			console.log(header_str);
+			
+			results.sort(function (a, b) {
+				if (parseInt(a.demand) > parseInt(b.demand))
+					return -1;
+				else if (parseInt(a.demand) < parseInt(b.demand))
+					return 1;
+				else if (a.airport > b.airport)
+					return 1;
+				else if (a.airport < b.airport)
+					return -1;
+				else
+					return 0;
+			});
+	
+			for (i=0; i < results.length; i++)
+			{
+				var rowNumber = parseInt(i + 2);
+				outstr = results[i].airport + ","  + results[i].iata_code + ","  + results[i].distance + ",";
+				outstr += results[i].demand + "," + results[i].supply + "," + results[i].my_supply;
+				
+				console.log(outstr);
+			}
+		});
+	
+	});
 	//this.exit(1);
 });
 
 
 
-casper.getDemandFromDestList = function (destination_codes) {
-casper.each(destination_codes, function(casper, dest_ICAO, index) {
-var daily_demand = { "Y" : [0,0,0,0,0,0,0], "C" : [0,0,0,0,0,0,0], "F" : [0,0,0,0,0,0,0], "total" : [0,0,0,0,0,0,0] };
-var total_daily_supply = [0,0,0,0,0,0,0];
-var my_daily_supply ={ "Y" : [0,0,0,0,0,0,0], "C" : [0,0,0,0,0,0,0], "F" : [0,0,0,0,0,0,0], "total" : [0,0,0,0,0,0,0] };
-var net_daily_supply = [0,0,0,0,0,0,0];
-	
-	if (base_ICAO == dest_ICAO)
-	{
-		return;
-	}
-	
-    this.thenOpen(url + base_ICAO + '/' + dest_ICAO + '/', function() {
-	this.waitForText('General information', function() {
-		//var dest_IATA= this.getElementInfo('#routePlanningData > div > div.borderInner > table > thead > tr:nth-child(7) > td > table > tbody > tr:nth-child(2) > td:nth-child(1)');
-		var dest_IATA = this.getElementInfo('a[href="/game/Routes/Airport/X/' + dest_ICAO + '/"]').text.split(/ /)[2];
-		
-	//console.log(JSON.stringify(this.getElementsInfo(x('//*[starts-with(@seriesname, "Demand ")]/set')), null, 4));
+casper.getDemandFromDestList = function (base_ICAO, destination_codes, threshold, min_demand, callback) {
+	var res = [];
+	var url = 'http://www.airwaysim.com/game/Routes/Planning/X/';
 
-	dem_xpath = x('//*[@id="routePlanningData"]/div/div[2]/table[1]/thead/tr[8]/td/script');
-	dem = this.getElementInfo(dem_xpath);	
-	re = /(<chart.*\/chart>)/m;
-	
-	xml = re.exec(dem.text);
-	//console.log(JSON.stringify(xml, null, 4));
-	
-	dp = new DOMParser();
-	xDoc = dp.parseFromString(xml[0], "text/xml");		
-		
-	// get daily demand, and my daily supply
-	for (c=0; c < seat_class.length; c++)
+	casper.each(destination_codes, function(casper, dest_ICAO, index) 
 	{
-		cls = seat_class[c];
+		var daily_demand = { "Y" : [0,0,0,0,0,0,0], "C" : [0,0,0,0,0,0,0], "F" : [0,0,0,0,0,0,0], "total" : [0,0,0,0,0,0,0] };
+		var total_daily_supply = [0,0,0,0,0,0,0];
+		var my_daily_supply ={ "Y" : [0,0,0,0,0,0,0], "C" : [0,0,0,0,0,0,0], "F" : [0,0,0,0,0,0,0], "total" : [0,0,0,0,0,0,0] };
+		var net_daily_supply = [0,0,0,0,0,0,0];
 			
-		// parse demand
-		dem_xp = '//*[@seriesName="Demand ' + seat_class[c] + '"]/set/@value';
-		var dem_iter = xDoc.evaluate(dem_xp, xDoc, null, XPathResult.UNORDERED_NODE_ITERATOR_TYPE, null );
-		thisNode = dem_iter.iterateNext();
-
-		i=0;
-		//console.log("Demand: ");
-		while (thisNode) {
-			//console.log( "\t" + thisNode.value );
-			daily_demand[cls][i] = parseInt(thisNode.value);
-			daily_demand.total[i] += parseInt(thisNode.value);
-
-			thisNode = dem_iter.iterateNext();
-			i++;
+		if (base_ICAO == dest_ICAO)
+		{
+			return;
 		}
 		
-		// parse my supply
-		supply_xp = '//*[@seriesName="My supply ' + seat_class[c] + '"]/set/@value';
-		var supp_iter = xDoc.evaluate(supply_xp, xDoc, null, XPathResult.UNORDERED_NODE_ITERATOR_TYPE, null );
-		thisNode = supp_iter.iterateNext();
+		this.thenOpen(url + base_ICAO + '/' + dest_ICAO + '/', function() {
+			this.waitForText('General information', function() {
+				//var dest_IATA= this.getElementInfo('#routePlanningData > div > div.borderInner > table > thead > tr:nth-child(7) > td > table > tbody > tr:nth-child(2) > td:nth-child(1)');
+				var dest_IATA = this.getElementInfo('a[href="/game/Routes/Airport/X/' + dest_ICAO + '/"]').text.split(/ /)[2];
+				
+				//console.log(JSON.stringify(this.getElementsInfo(x('//*[starts-with(@seriesname, "Demand ")]/set')), null, 4));
 
-		i=0;
-		//console.log("My supply "+cls+":");
-		while (thisNode) {
-			//console.log( "\t" + thisNode.value );
-			my_daily_supply[cls][i] = parseInt(thisNode.value);
-			my_daily_supply.total[i] += parseInt(thisNode.value);
+				dem_xpath = x('//*[@id="routePlanningData"]/div/div[2]/table[1]/thead/tr[8]/td/script');
+				dem = this.getElementInfo(dem_xpath);	
+				re = /(<chart.*\/chart>)/m;
+				
+				xml = re.exec(dem.text);
+				//console.log(JSON.stringify(xml, null, 4));
+				
+				dp = new DOMParser();
+				xDoc = dp.parseFromString(xml[0], "text/xml");		
+					
+				// get daily demand, and my daily supply
+				for (c=0; c < seat_class.length; c++)
+				{
+					cls = seat_class[c];
+						
+					// parse demand
+					dem_xp = '//*[@seriesName="Demand ' + seat_class[c] + '"]/set/@value';
+					var dem_iter = xDoc.evaluate(dem_xp, xDoc, null, XPathResult.UNORDERED_NODE_ITERATOR_TYPE, null );
+					thisNode = dem_iter.iterateNext();
 
-			thisNode = supp_iter.iterateNext();
-			i++;
-		}		
-	}
+					i=0;
+					//console.log("Demand: ");
+					while (thisNode) {
+						//console.log( "\t" + thisNode.value );
+						daily_demand[cls][i] = parseInt(thisNode.value);
+						daily_demand.total[i] += parseInt(thisNode.value);
 
-	// parse total supply
-	tot_supp_xp = '//*[@seriesName="Total supply"]/set/@value';
-	var tot_supp_iter = xDoc.evaluate(tot_supp_xp, xDoc, null, XPathResult.UNORDERED_NODE_ITERATOR_TYPE, null );
-	var thisNode = tot_supp_iter.iterateNext();
+						thisNode = dem_iter.iterateNext();
+						i++;
+					}
+					
+					// parse my supply
+					supply_xp = '//*[@seriesName="My supply ' + seat_class[c] + '"]/set/@value';
+					var supp_iter = xDoc.evaluate(supply_xp, xDoc, null, XPathResult.UNORDERED_NODE_ITERATOR_TYPE, null );
+					thisNode = supp_iter.iterateNext();
 
-	i=0;
-	//console.log("Total supply: ");
-	while (thisNode) {
-		//console.log( "\t" + thisNode.value );
-		total_daily_supply[i] = parseInt(thisNode.value);
+					i=0;
+					//console.log("My supply "+cls+":");
+					while (thisNode) {
+						//console.log( "\t" + thisNode.value );
+						my_daily_supply[cls][i] = parseInt(thisNode.value);
+						my_daily_supply.total[i] += parseInt(thisNode.value);
 
-		thisNode = tot_supp_iter.iterateNext();
-		i++;
-	}		
+						thisNode = supp_iter.iterateNext();
+						i++;
+					}		
+				}
+
+				// parse total supply
+				tot_supp_xp = '//*[@seriesName="Total supply"]/set/@value';
+				var tot_supp_iter = xDoc.evaluate(tot_supp_xp, xDoc, null, XPathResult.UNORDERED_NODE_ITERATOR_TYPE, null );
+				var thisNode = tot_supp_iter.iterateNext();
+
+				i=0;
+				//console.log("Total supply: ");
+				while (thisNode) {
+					//console.log( "\t" + thisNode.value );
+					total_daily_supply[i] = parseInt(thisNode.value);
+
+					thisNode = tot_supp_iter.iterateNext();
+					i++;
+				}		
 
 
-	// average demand
-	demand = parseInt(this.fetchText('#routePlanningData > div > div.borderInner > table:nth-child(2) > thead > tr:nth-child(4) > td:nth-child(2)').trim().replace(/\D+/g, ''));
-	//demand = Math.min.apply(null, daily_demand.total);
-	
-	// max supply
-	//supply = Math.max.apply(null, net_daily_supply);
-	supply = Math.max.apply(null, total_daily_supply);
-	
-	// max my supply
-	my_supply = Math.max.apply(null, my_daily_supply.total);
-	
-	//console.log(dest_ICAO + ": " + this.fetchText('#routePlanningData > div > div.borderInner > table:nth-child(2) > thead > tr:nth-child(4) > td:nth-child(2)').trim());
-	var distance_nm = parseInt((this.fetchText(x('//*[@id="routePlanningData"]/div/div[2]/table[1]/thead/tr[3]/td[2]')).trim().split(/ /))[0]);
-	//console.log(dest_ICAO + "," + dest_IATA );
-	
-    var obj = { airport: dest_ICAO,
-				iata_code: dest_IATA,
-				distance: distance_nm,
-				demand: demand,
-				supply: supply,
-				my_supply: my_supply };
-   
-	//console.log(dest_IATA, distance_nm, demand, supply);
-	if ((threshold > 0 && demand - supply >= threshold) || (min_demand > 0 && demand >= min_demand))
-	{
-		results.push(obj);
-		//console.log("Adding "+JSON.stringify(obj));                   
-	}
-	else
-	{
-		//console.log("Below threshold "+JSON.stringify(obj));
-	}
+				// average demand
+				demand = parseInt(this.fetchText('#routePlanningData > div > div.borderInner > table:nth-child(2) > thead > tr:nth-child(4) > td:nth-child(2)').trim().replace(/\D+/g, ''));
+				//demand = Math.min.apply(null, daily_demand.total);
+				
+				// max supply
+				//supply = Math.max.apply(null, net_daily_supply);
+				supply = Math.max.apply(null, total_daily_supply);
+				
+				// max my supply
+				my_supply = Math.max.apply(null, my_daily_supply.total);
+				
+				//console.log(dest_ICAO + ": " + this.fetchText('#routePlanningData > div > div.borderInner > table:nth-child(2) > thead > tr:nth-child(4) > td:nth-child(2)').trim());
+				var distance_nm = parseInt((this.fetchText(x('//*[@id="routePlanningData"]/div/div[2]/table[1]/thead/tr[3]/td[2]')).trim().split(/ /))[0]);
+				//console.log(dest_ICAO + "," + dest_IATA );
+				
+				var obj = { airport: dest_ICAO,
+							iata_code: dest_IATA,
+							distance: distance_nm,
+							demand: demand,
+							supply: supply,
+							my_supply: my_supply };
+			
+				//console.log(JSON.stringify(obj, null, 4));
+				if ((threshold > 0 && demand - supply >= threshold) || (min_demand > 0 && demand >= min_demand))
+				{
+					res.push(obj);
+					//console.log("Adding "+JSON.stringify(obj, null, 4));     
+				}
+				else
+				{
+					//console.log("Below threshold "+JSON.stringify(obj, null, 4));
+				}
 
-	},
+			},
 
-	function timeout()
-	{
-		this.capture(tempDir + 'error.png');
+			function timeout()
+			{
+				this.capture(tempDir + 'error.png');
 
-	}, 
-	10000);
-	});
-});
-
-casper.then(function() {
-	//console.log("results =\n" + JSON.stringify(results, null, 4));
-	//header_str = "ICAO,IATA,dist_nm,demand,my_supply"; 
-	header_str = "ICAO,IATA,dist_nm,demand,supply,my_supply"; 
-	/*
-	for (i=0; i < 7; i++) header_str += ",D_Y_" + (i+1);
-	for (i=0; i < 7; i++) header_str += ",D_C_" + (i+1);
-	for (i=0; i < 7; i++) header_str += ",D_F_" + (i+1);
-
-	for (i=0; i < 7; i++) header_str += ",MS_Y_" + (i+1);
-	for (i=0; i < 7; i++) header_str += ",MS_C_" + (i+1);
-	for (i=0; i < 7; i++) header_str += ",MS_F_" + (i+1);
-	
-	for (i=0; i < 7; i++) header_str += ",TS_" + (i+1);
-
-	for (i=0; i < 7; i++) header_str += ",UD_" + (i+1);
-	*/
-	
-	console.log(header_str);
-	
-	results.sort(function (a, b) {
-		if (parseInt(a.demand) > parseInt(b.demand))
-			return -1;
-		else if (parseInt(a.demand) < parseInt(b.demand))
-			return 1;
-		else if (a.airport > b.airport)
-			return 1;
-		else if (a.airport < b.airport)
-			return -1;
-		else
-			return 0;
-	});
-
-	for (i=0; i < results.length; i++)
-	{
-		var rowNumber = parseInt(i + 2);
-		outstr = results[i].airport + ","  + results[i].iata_code + ","  + results[i].distance + ",";
-	
-		/*
-		outstr += results[i].demand.Y.join(",") + ",";
-		outstr += results[i].demand.C.join(",") + ",";
-		outstr += results[i].demand.F.join(",") + ",";
-
-		outstr += results[i].my_supply.Y.join(",") + ",";
-		outstr += results[i].my_supply.C.join(",") + ",";
-		outstr += results[i].my_supply.F.join(",") + ",";
-		
-		outstr += results[i].supply.join(",") + ",";
-		
-		qp = results[i].demand.total.map(function(val, index) {
-			return (val - results[i].supply[index] >= threshold ? val - results[i].supply[index] : 0);
+			}, 
+			10000);
 		});
-		
-		outstr += qp.join(",");
-		*/
-		//outstr += results[i].demand - results[i].supply + "," + results[i].my_supply;
-		outstr += results[i].demand + "," + results[i].supply + "," + results[i].my_supply;
-		
-		console.log(outstr);
-	}
-});
+	});
+
+	casper.then(function()
+	{
+		//console.log("getDemandFromDestList::\n"+JSON.stringify(res, null, 4));
+		callback(res);
+	});
 };
 
-/*
-casper.then(function() {
-	//console.log("results =\n" + JSON.stringify(results, null, 4));
-	console.log("ICAO,IATA,dist_nm,pax,flights,b733,f50,block");
-	results.sort(function (a, b) {
-		if (parseInt(a.demand) > parseInt(b.demand))
-			return -1;
-		else if (parseInt(a.demand) < parseInt(b.demand))
-			return 1;
-		else if (a.airport > b.airport)
-			return 1;
-		else if (a.airport < b.airport)
-			return -1;
-		else
-			return 0;
-	});
-
-	for (i=0; i < results.length; i++)
-	{
-		var rowNumber = parseInt(i + 2);
-		//console.log(results[i].airport + "," + results[i].distance + ","  + results[i].demand, ",=INT(C" + rowNumber + "/125),=INT(C" + rowNumber + "/68)");
-		f50_val = b733_val = block = 0;
-		if (results[i].distance > 1290)
-		{
-			if (results[i].demand >= 125)
-				b733_val = results[i].demand/125;
-			else if (results[i].demand > 80)
-			{
-				b733_val = results[i].demand/80;
-				block = results[i].demand;
-			}
-		}
-		else
-		{
-			if (results[i].demand >= 125)
-				b733_val = results[i].demand/125;
-			else if (results[i].demand > 80)
-			{
-				b733_val = results[i].demand/80;
-				block = results[i].demand;
-			}
-			else if (results[i].demand >= 52)
-			{
-				f50_val = results[i].demand/52;
-			}
-			else if (results[i].demand >= 40)
-			{
-				f50_val = results[i].demand/40;
-				block = results[i].demand;
-			}
-		}
-	
-		console.log(results[i].airport + ","  + results[i].iata_code + ","  + results[i].distance + ","  + results[i].demand + "," + 
-			results[i].flights + "," + parseInt(b733_val) + "," + parseInt(f50_val) + "," + block);
-	}
-});
-*/
 casper.run();

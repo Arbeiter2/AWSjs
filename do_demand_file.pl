@@ -23,6 +23,7 @@ my ($base_airport_icao, $fleet_type_id, $min_load, $max_range, $max_flights, $fi
 # KLAS,LAS,915,1430,1067,0
 # KDTW,DTW,856,1110,738,0
 
+my $total = 0;
 print "var flightData = [\n";
 open(FH, "< $file_name") || die "Error opening $file_name: $!";
 while (<FH>)
@@ -36,6 +37,7 @@ while (<FH>)
 	#print "$_ $demand\n";
 	next if ($demand < $min_load);
 	my $count = int($demand/$min_load);
+	$total += $count;
 
 	my $s = "{ 'from_icao_code': '$base_airport_icao', " . 
 			"'to_icao_code': '$fields[0]', " .
@@ -46,3 +48,4 @@ while (<FH>)
 }
 close(FH);
 print "];\n";
+print STDERR "Total flights = $total\n";

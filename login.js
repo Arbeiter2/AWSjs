@@ -84,15 +84,22 @@ casper.then(function() { this.saveCookies(cookieFile); });
 var gameName = "";
 var gameImage = LoginSelectors.gameImage_pattern.replace('%GAME_ID%', gameID);
 var continueGameBtn = LoginSelectors.continueGameBtn_pattern.replace('%GAME_ID%', gameID);
+casper.thenClick('#Game_area', function()
+{
+//	console.log(this.getCurrentUrl());
+//});
 
-casper.thenOpen('http://www.airwaysim.com/game/', function() {
+//casper.thenOpen('http://www.airwaysim.com/game/', function() {
 	//console.log(this.getCurrentUrl());
 	//console.log(this.getTitle());
 	//this.capture('/tmp/intermediate.jpg');
 
+	this.waitForText('Continue game', function() {
+
 	if (!this.getCurrentUrl().match(/NewsOverview/)
 	&&  !this.getTitle().match(/Dashboard.+Airline news/))
 	{
+//		console.log("Waiting for ["+continueGameBtn+"]");
 		casper.waitForSelector(continueGameBtn,
 		function gameFound() {
 			gameName = this.getElementAttribute(gameImage, 'alt');
@@ -101,7 +108,7 @@ casper.thenOpen('http://www.airwaysim.com/game/', function() {
 			if (!this.getElementAttribute(continueGameBtn, 'title').match(/Continue game/))
 			{
 				logMessage('FAIL', 'Game ' + gameID + ' (' + gameName + ') not running.');
-				this.capture(tempDir + '/error.jpg');
+//				this.capture(tempDir + '/error.jpg');
 				casper.exit(1);
 			}
 		},
@@ -109,7 +116,7 @@ casper.thenOpen('http://www.airwaysim.com/game/', function() {
 		function noGame() {
 			{
 				logMessage('FAIL', 'Game ' + gameID + " not found after " + loginTimeout + "ms.");
-				//this.capture('/tmp/error.jpg');
+//				this.capture('c:/tmp/error.jpg');
 				casper.exit(1);
 			}
 		},
@@ -121,6 +128,12 @@ casper.thenOpen('http://www.airwaysim.com/game/', function() {
 			logMessage('PASS', 'Game ' + gameID + ' (' + gameName + ') found');
 		});
 	}
+},
+
+function missingContinue() { console.log("No 'Continue game' detected"); this.capture('c:/tmp/error.jpg'); },
+
+10000
+);
 
 });
 

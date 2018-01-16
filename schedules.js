@@ -3,16 +3,16 @@ schedules.js
 */
 phantom.injectJs( 'getflightdata.js' );
 
-var scheduleAircraftIDURL = 'http://www.airwaysim.com/game/Routes/Schedules/?filterAircraft=';
-var aircraftSearchNameURL = 'http://www.airwaysim.com/game/Aircraft/My?Keyword=';
-var aircraftViewURL = 'http://www.airwaysim.com/game/Aircraft/My/View/';
-var routeSearchAircraftIDURL = 'http://www.airwaysim.com/game/Routes/Manage/?filterAircraft=';
-var routeSearchFlNumURL = 'http://www.airwaysim.com/game/Routes/Manage/?Keyword=';
-var routeViewURL = 'http://www.airwaysim.com/game/Routes/View/';
-var routeEditURL = 'http://www.airwaysim.com/game/Routes/Edit/';
+var scheduleAircraftIDURL = 'https://www.airwaysim.com/game/Routes/Schedules/?filterAircraft=';
+var aircraftSearchNameURL = 'https://www.airwaysim.com/game/Aircraft/My?Keyword=';
+var aircraftViewURL = 'https://www.airwaysim.com/game/Aircraft/My/View/';
+var routeSearchAircraftIDURL = 'https://www.airwaysim.com/game/Routes/Manage/?filterAircraft=';
+var routeSearchFlNumURL = 'https://www.airwaysim.com/game/Routes/Manage/?Keyword=';
+var routeViewURL = 'https://www.airwaysim.com/game/Routes/View/';
+var routeEditURL = 'https://www.airwaysim.com/game/Routes/Edit/';
 
 // the CopyIDNext operation does not validate the airport codes, only route ID
-var copyNextURL = 'http://www.airwaysim.com/game/Routes/Open/SPIM/EGLL/?CopyIDNext=';
+var copyNextURL = 'https://www.airwaysim.com/game/Routes/Open/SPIM/EGLL/?CopyIDNext=';
 
 var routeViewRe = /game\/Routes\/View\/(\d+)/;
 
@@ -123,7 +123,15 @@ casper.getAircraftID = function(registration, callback)
 {
 	var links = [];
 	var retVal = { aircraft_id : -1, aircraft_reg: registration };
-	
+/*
+	this.thenClick('#ddAircraft > ul > li:nth-child(2) > a', function()
+	{
+		casper.waitForSelector(ViewAircraftSelectors.viewACSchedule);
+		console.log(this.getCurrentUrl());
+	},
+
+function () { console.log("oh fuck - can't load My Aircraft page"); }, 20000);
+	*/
 	casper.thenOpen(aircraftSearchNameURL + registration, function() {
 		casper.waitForSelector(ViewAircraftSelectors.viewACSchedule, 
 			function found() 
@@ -139,7 +147,7 @@ casper.getAircraftID = function(registration, callback)
 
 				if (links.length === 0)
 				{
-					logMessage('ERROR', "No aircraft match string [" + registration + "]\n" + this.getCurrentUrl());
+					logMessage('ERROR', "No aircraft match string [" + registration + "] in list\n" + this.getCurrentUrl());
 					callback(retVal);
 				}
 				else
@@ -154,7 +162,7 @@ casper.getAircraftID = function(registration, callback)
 					// unused
 					//var fleet_model_id = this.fetchText("#Model" + aircraft_id);
 
-					//casper.thenOpen('http://www.airwaysim.com' + links[0].attributes.href, function() {
+					//casper.thenOpen('https://www.airwaysim.com' + links[0].attributes.href, function() {
 					casper.thenOpen(scheduleAircraftIDURL + retVal.aircraft_id, function() {
 						
 						this.waitForSelector(ScheduleSelectors.ac_tooltip, function() {
@@ -209,10 +217,12 @@ casper.getAircraftID = function(registration, callback)
 			function timeout()
 			{
 				logMessage('ERROR', "getAircraftID(): No aircraft match string [" + registration + "] " + this.getCurrentUrl());
+				this.capture("c:/tmp/trash-z.png");
+
 				callback(retVal);
 			},
 			
-			5000);
+			15000);
 	});
 };
 
@@ -356,7 +366,7 @@ casper.findRouteForNextDay = function(routeData, noSlots, callback)
 					//require('utils').dump(assignedAircraft[index2]);
 					if (assignedAircraft[index2].attributes.title.indexOf('tooltip_fleet') == -1)
 					//{
-						//logMessage('INFO', "findRouteForNextDay() : Next day flight for " + routeData.flight_number + " on " + routeData.day + " already has aircraft assigned " + '@test text@,http://www.airwaysim.com' + routes[index2].attributes.href);
+						//logMessage('INFO', "findRouteForNextDay() : Next day flight for " + routeData.flight_number + " on " + routeData.day + " already has aircraft assigned " + '@test text@,https://www.airwaysim.com' + routes[index2].attributes.href);
 						nextDayRoute.assigned = true;
 						//callback(nextDayRoute);
 					//}
@@ -459,7 +469,7 @@ casper.findRouteForNextDay = function(routeData, noSlots, callback)
 								10000
 							);
 						});
-					//logMessage('OK', routeData.flight_number + " is available for schedule on " + weekNumberDays[newDay] + ' http://www.airwaysim.com' + routes[index2].attributes.href);
+					//logMessage('OK', routeData.flight_number + " is available for schedule on " + weekNumberDays[newDay] + ' https://www.airwaysim.com' + routes[index2].attributes.href);
 						callback(nextDayRoute);
 					//}
 				}
@@ -589,7 +599,7 @@ casper.createNextDay = function(routeData, noSlots, callback)
 			this.waitForText('The route has been created.',
 
 			function() {
-				var newRouteURL = 'http://www.airwaysim.com' + this.getElementInfo(EditRouteSelectors.updatedRoute).attributes.href.replace('Edit', 'View');
+				var newRouteURL = 'https://www.airwaysim.com' + this.getElementInfo(EditRouteSelectors.updatedRoute).attributes.href.replace('Edit', 'View');
 				
 				// extract route ID
 				var m = newRouteURL.match(/game\/Routes\/View\/(\d+)/);
@@ -606,8 +616,10 @@ casper.createNextDay = function(routeData, noSlots, callback)
 					routeData.base_airport_iata + "-" + routeData.dest_airport_iata + "\t" +
 					days + "\t" +
 					this.getCurrentUrl() + "\t" +
-					this.getHTML(EditRouteSelectors.routeErrorMessages, true));			
-			});
+					this.getHTML(EditRouteSelectors.routeErrorMessages));			
+			},
+		
+			12000);
 		});
 	}
 	});
@@ -672,6 +684,82 @@ function ElementInfoReplace(name, val)
 	@return true on success, false otherwise
 */
 casper.assignRoutesToAircraft = function(routes, aircraftData, callback)
+{
+	var flightsSeen = [];
+	var base_id = "5237";
+	
+	// check whether we have all the routes or not; we do all or nothing
+	casper.each(routes, function(casper, routeData, index) {
+		if (routeData.assigned || routeData.flight_id == -1)
+		{
+			logMessage("ERROR", "Aborting route assignment to aircraft - all routes not available");
+			callback(false);
+		}
+	});
+	var base_id_sel = x('//*[@id="BaseID' + aircraftData.aircraft_id + '"]');
+	
+	// get base_id
+	casper.waitForSelector(base_id_sel, 
+		function()
+		{
+			base_id = this.getElementInfo(base_id_sel).text.trim();
+		}, 
+		
+		function() {
+			console.log("Selector "+base_id_sel+" not found");
+			//console.log(this.getHTML());
+			//callback(false);
+		},
+	6000);
+
+	logMessage('INFO', "Assigning " + routes.length + " routes to aircraft " + aircraftData.aircraft_reg + " " + scheduleAircraftIDURL + aircraftData.aircraft_id);
+
+	// now we open the new aircraft's schedule and get to work
+	casper.thenOpen(scheduleAircraftIDURL + aircraftData.aircraft_id, function() {
+	casper.waitForSelector(ScheduleSelectors.addFlightsBtn, 
+		function found()
+		{
+			// check whether the schedule is empty, even of maintenance checks
+			this.then(function () {
+				if (this.exists(ScheduleSelectors.scheduleNotEmpty))
+				{
+					logMessage('ERROR', "Schedule not empty for new aircraft [" + aircraftData.aircraft_reg + "]");
+					callback(false);					
+				}
+				else
+				{
+					logMessage('INFO', "Target aircraft [" + aircraftData.aircraft_reg + "] schedule is clear");
+				}
+			});
+
+			this.then(function () {
+				var params='action=addflight&id=' + aircraftData.aircraft_id + '&fleetID=' + aircraftData.fleet_type_id + '&baseID=' + base_id;
+				this.each(routes, function(casper, f)
+				{
+					params = params + "&flights[]=" + f.flight_id;
+				});
+
+				//console.log("makeHttpRequest('/game/Routes/Schedules/X/', '" +params+ "', 'updActionResult', false);");
+
+				this.evaluate(function(myParams)
+				{
+					makeHttpRequest('/game/Routes/Schedules/X/', myParams, 'updActionResult', false);
+				}, params);
+			});
+		},
+		
+		function timeout()
+		{
+			logMessage('ERROR', "assignRoutesToAircraft(): Timeout opening scheduling page " + this.getCurrentUrl());
+			callback(false);
+		},
+		
+		10000
+	);
+	});
+};
+
+casper.assignRoutesToAircraft__ = function(routes, aircraftData, callback)
 {
 	var flightsSeen = [];
 	var base_id = "5237";
@@ -1206,7 +1294,7 @@ casper.sendFlightsToDB = function (flightData)
 		postDataObj.game_id = gameID;
 		postDataObj.newFlightData = JSON.stringify(flightData);
 
-		casper.thenOpen('http://localhost/aws/app/v1/games/' + gameID + '/flights',
+		casper.thenOpen('https://localhost/aws/app/v1/games/' + gameID + '/flights',
 		{
 			method: 'post',
 			data: postDataObj
