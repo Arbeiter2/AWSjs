@@ -188,6 +188,11 @@ casper.then(function() {
 			timetable_id : timetable_id
 		}*/
 	}, function(response) {
+		if (response['status'] != 200)
+		{
+			console.log("Timetable ["+timetable_id+"] not loaded successfully");
+			this.exit(1);
+		}
 		//console.log(JSON.stringify(response, null, 4));
 		//console.log(JSON.stringify(this.getPageContent(), null, 4));
 

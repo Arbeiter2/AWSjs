@@ -48,4 +48,4 @@ while (<FH>)
 }
 close(FH);
 print "];\n";
-print STDERR "Total flights = $total\n";
+#print STDERR "Total flights = $total\n";

@@ -6,11 +6,11 @@ import json, simplejson, copy
 import random
 import time, re
 
-casperCommand = "/usr/local/lib/node_modules/casperjs/bin/casperjs --ssl-protocol=tlsv1"
+#casperCommand = "/usr/local/lib/node_modules/casperjs/bin/casperjs --ssl-protocol=tlsv1"
 casperCommand = "c:/casperjs/bin/casperjs"
-scriptPath = "/home/delano/js"
+#scriptPath = "/home/delano/js"
 scriptPath = "c:/js"
-executable = '/bin/bash'
+#executable = '/bin/bash'
 executable = 'c:/windows/system32/cmd.exe'
 
 def runCommand(cmdLine):

@@ -195,13 +195,16 @@ casper.then(function() {
 					return this.text.trim() == operator;
 				}).prop('selected', true);
 			}, region, levelOp);
+
+			if (filter)
+				this.click("#filterOwnRoutes2_0");
 			
 			this.fill('#searchForm2_0', {
 	//			'Size':    levelStr[0],
 				'trafficSize': levelStr,
 				'RangeMin':    min_range,
 				'RangeMax':    max_range,
-				'filterOwnRoutes': filter
+				//'filterOwnRoutes': "true"
 			}, false);		
 
 			//console.log(JSON.stringify(this.getFormValues('#searchForm2_0'), null, 4));

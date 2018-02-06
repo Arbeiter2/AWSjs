@@ -746,6 +746,10 @@ casper.assignRoutesToAircraft = function(routes, aircraftData, callback)
 					makeHttpRequest('/game/Routes/Schedules/X/', myParams, 'updActionResult', false);
 				}, params);
 			});
+
+			this.then(function() { 
+				callback(true);
+			});
 		},
 		
 		function timeout()
@@ -1471,6 +1475,171 @@ function moveRoutes(from, to)
 {
 }
 
-function swapRoutes(from, to)
+/**
+ * clearTimetable
+ * 
+ * @param {*} aircraftID 
+ * @param {*} callback 
+ */
+casper.clearTimetable = function(aircraftID, callback)
 {
+	this.thenOpen(scheduleAircraftIDURL + aircraftID, function() {
+		this.waitWhileVisible("#loadingAnimation", function() {}, function() {}, 3000);
+	});
+
+	res = false;
+
+	this.then(function()
+	{
+		if (this.exists("#currReg" + aircraftID))
+		{
+			tail = this.getElementInfo("#currReg" + aircraftID).text;
+			this.thenEvaluate(function(id) {
+				removeScheduledItem(id, 2, 0, 0);
+				$("#confirmOKbtndialogClearSchedule").click();
+			}, aircraftID);
+			res = true;
+		}
+	});
+
+	this.then(function() {
+		if (res)
+		{
+			logMessage("INFO", "Cleared schedule for aircraft "+tail);
+		}
+		else
+		{
+			logMessage("INFO", "Unable to clear schedule for aircraft "+tail);
+		}
+
+		if ((typeof callback) == "function")
+		{
+			callback(res);
+		}
+	});
+
+}
+
+/**
+ * swapSchedules
+ * 
+ * @param {*} aircraftTailA 
+ * @param {*} aircraftTailB 
+ */
+casper.swapSchedules = function (aircraftTailA, aircraftTailB)
+{
+	aircraftTailA = aircraftTailA.toUpperCase();
+	aircraftTailB = aircraftTailB.toUpperCase();
+	
+	// bomb for same tail twice
+	this.then(function() {
+		if (aircraftTailA == aircraftTailB)
+		{
+			logMessage("ERROR", "Cannot swap routes: same aircraft [" + aircraftTailA +"] specified twice"); 
+			this.exit(1);
+		}
+	});
+	
+	var aircraftA, aircraftB;
+	
+	// get aircraft details
+	this.then(function() {
+		this.getAircraftID(aircraftTailA, function(x) {
+			aircraftA = x; 
+			casper.getAircraftID(aircraftTailB, function(y) { 
+				aircraftB = y; 
+			});
+		});
+	});
+	
+	this.then(function() {
+		// one or other aircraft not found
+		if (aircraftA.aicraft_id == -1 || aircraftB.aicraft_id == -1)
+		{
+			console.log("One or both a/c not found");
+			this.exit(1);
+		}
+				
+		// fleet type mismatch
+		if (aircraftA.fleet_type_id != aircraftB.fleet_type_id)
+		{
+			logMessage("ERROR", "Fleet type mismatch: ["+
+					aircraftTailA +
+					"] ("+ aircraftA.fleet_type_id +") != ["+
+					aircraftTailB +
+					"] ("+ aircraftB.fleet_type_id +")");
+			this.exit(1);
+		}
+		
+		// base mismatch
+		if (aircraftA.base_airport_iata != aircraftB.base_airport_iata)
+		{
+			logMessage("ERROR", "Base mismatch: ["+
+					aircraftTailA +
+					"] ("+ aircraftA.base_airport_iata +") != ["+
+					aircraftTailB +
+					"] ("+ aircraftB.base_airport_iata +")");
+			this.exit(1);
+		}
+		else
+		{
+			logMessage("INFO", "Validated aircraft ["+aircraftTailA+"] and ["+ aircraftTailB+"] at base "+aircraftA.base_airport_iata);
+		}
+	});
+	
+	
+	// get maintenance data, route details
+	this.then(function() {
+		this.each([aircraftA, aircraftB], function(self, acData) {
+			//logMessage("INFO", "Getting maintenance details for ["+acData.aircraft_reg+"]");
+			this.getMaintenanceData(acData, function(x) {
+				acData['mtx'] = x; 
+				casper.getRouteData(acData.aircraft_id, function(y) {
+				//logMessage("INFO", "Getting route details for ["+acData.aircraft_reg+"]");
+				acData['routes'] = y;
+				});
+			});
+		});		
+	});		
+
+	this.then(function() {
+		//logMessage("INFO", "Validated aircraft ["+aircraftTailA+"] and ["+ aircraftTailB+"] - begin swap");
+		logMessage("INFO", "Got "+aircraftA.routes.length+" routes on "+aircraftTailA);
+		logMessage("INFO", "Got "+aircraftB.routes.length+" routes on "+aircraftTailB);
+	});
+	
+	// clear both timetables
+	this.then(function() {
+		this.clearTimetable(aircraftA.aircraft_id, function() {
+			casper.clearTimetable(aircraftB.aircraft_id, function() {});
+		});
+	});
+
+	this.then(function() {
+		casper.assignRoutesToAircraft(aircraftB['routes'], aircraftA, function(r) {
+			casper.assignMaintenanceToAircraft(
+				aircraftA, 
+				aircraftB['mtx'].day, 
+				aircraftB['mtx'].hh, 
+				aircraftB['mtx'].mm, 
+				function (s) { console.log("assignRoutesToAircraft(" + aircraftTailA + ") = "+ (s ? "SUCCESS" : "FAIL"));}
+			);
+		});
+	});
+	
+	this.then(function() {
+		casper.assignRoutesToAircraft(aircraftA['routes'], aircraftB, function(r) {
+			casper.assignMaintenanceToAircraft(
+				aircraftB, 
+				aircraftA['mtx'].day, 
+				aircraftA['mtx'].hh, 
+				aircraftA['mtx'].mm, 
+				function (s) { console.log("assignRoutesToAircraft(" + aircraftTailB + ") = "+ (s ? "SUCCESS" : "FAIL"));}
+			);
+		});
+	});
+	
+	this.then(function() {
+		logMessage("INFO", "Complete");
+	});
 }
