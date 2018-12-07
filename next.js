@@ -26,7 +26,7 @@ var srcAircraft = casper.cli.get("from-aircraft").toUpperCase();
 logMessage('OK', 'from-aircraft = ' + srcAircraft);
 
 // destination aircraft
-var newAircraft = casper.cli.get("to-aircraft").toUpperCase();
+var newAircraft = casper.cli.get("to-aircraft").toUpperCase().split(",");
 logMessage('OK', 'to-aircraft = ' + newAircraft);
 
 // only do login check if aircraft param is available
@@ -42,10 +42,15 @@ logMessage('INFO', 'airport slots will' + (noSlots ? ' not' : '') + ' be purchas
 
 
 // use the manage routes page with the specific aircraft name
-
-casper.then(function () 
-{
-	__addNextDay(srcAircraft, noSlots, newAircraft);
+casper.each(newAircraft, function (self, dest) {
+	casper.then(function () 
+	{
+		__addNextDay(srcAircraft, noSlots, dest);
+	});
+	
+	casper.then(function() {
+		srcAircraft = dest;
+	});
 });
 
 casper.run();

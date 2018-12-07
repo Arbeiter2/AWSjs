@@ -351,15 +351,24 @@ casper.getDemandFromDestList = function (base_ICAO, destination_codes, threshold
 				
 				//console.log(JSON.stringify(this.getElementsInfo(x('//*[starts-with(@seriesname, "Demand ")]/set')), null, 4));
 
-				dem_xpath = x('//*[@id="routePlanningData"]/div/div[2]/table[1]/thead/tr[8]/td/script');
-				dem = this.getElementInfo(dem_xpath);	
-				re = /(<chart.*\/chart>)/m;
+				dem_xpath = x('//*[@id="routePlanningData"]/div/div[2]/table[1]/thead/tr/td/script');
 				
-				xml = re.exec(dem.text);
-				//console.log(JSON.stringify(xml, null, 4));
+				scripts = this.getElementsInfo(dem_xpath);	
+				re = /(<chart.*\/chart>)/m;
+				re2 = /Demand Y/g;
+				xml = null;
+				
+				for(s=0; s < scripts.length; s++) {
+					//console.log(scripts[s].text);
+					if (re2.test(scripts[s].text))
+					{
+						xml = re.exec(scripts[s].text)[0];
+						break;
+					}
+				}
 				
 				dp = new DOMParser();
-				xDoc = dp.parseFromString(xml[0], "text/xml");		
+				xDoc = dp.parseFromString(xml, "text/xml");		
 					
 				// get daily demand, and my daily supply
 				for (c=0; c < seat_class.length; c++)
@@ -372,7 +381,7 @@ casper.getDemandFromDestList = function (base_ICAO, destination_codes, threshold
 					thisNode = dem_iter.iterateNext();
 
 					i=0;
-					//console.log("Demand: ");
+					//console.log("Demand: "+dem_xp);
 					while (thisNode) {
 						//console.log( "\t" + thisNode.value );
 						daily_demand[cls][i] = parseInt(thisNode.value);
