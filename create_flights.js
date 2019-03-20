@@ -149,6 +149,7 @@ casper.createFlights = function(from_ICAO, to_ICAO, fleet_type_id, days, time, c
 	// submit
 	var flightDataObj = {};
 	this.then(function() {
+		this.waitWhileVisible("#loadingAnimation", function() {}, function() {}, 3000);
 		flightDataObj = this.getFlightData();
 //console.log(JSON.stringify(flightDataObj, null, 4));
 

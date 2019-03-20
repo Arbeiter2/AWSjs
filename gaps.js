@@ -181,7 +181,7 @@ casper.getTimetableGaps = function(timetableData, callback)
 				if (acTooltips === null)
 				{
 					timetableObj.validFlight = false;
-					console.log(timetableObj.firstFlight, JSON.stringify(acTooltips, null, 4));
+//					console.log(timetableObj.firstFlight, JSON.stringify(acTooltips, null, 4));
 				}
 				else //if (aircraftLinks.length == acTooltips.length)
 				{

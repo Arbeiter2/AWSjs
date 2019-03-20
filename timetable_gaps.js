@@ -71,7 +71,9 @@ casper.then(function()
 // now we get the number of aircraft required
 casper.then(function()
 {
-	if (!silent)
+	console.log(JSON.stringify(gapData, null, 4));
+
+	/*if (!silent)
 	{
 	casper.each(gapData, function (casper, timetableObj, index)
 	{
@@ -101,13 +103,14 @@ casper.then(function()
 	else
 	{
 		console.log(JSON.stringify(gapData, null, 4));
-	}
+	}*/
 });
 
+/*
 casper.then(function()
 {
 	logHTML("</tbody>\n</table>\n");
 	logMessage('INFO', "Complete");
 });
-
+*/
 casper.run();

@@ -8,7 +8,7 @@ phantom.injectJs( './global.js');
 phantom.injectJs( 'selectors.js'); 
 
 var options = ['game_id', 'base', 'region', 'min-range', 'min-demand',
-			   'max-range', 'threshold', 'level', 'filter'];
+			   'max-range', 'threshold', 'level', 'cargo', 'filter'];
 var goodArgs = true;
 function usage()
 {
@@ -16,6 +16,7 @@ console.log(argv[0] + requiredArgs.join("\n") + "\n" +
 					  "--h\tthis message" + "\n" +
 					  "--base=<airport ICAO code>\n" +
 					  "--region=<region code> (WO|NA|EU|AF|AS|SA|OC)\n" +
+					  "--cargo (cargo only)\n",
 					  "[--min-range=<minimum range>]\n" +
 					  "[--max-range=<maximum range>]\n" +
 					  "[--min-demand=<minimum demand>]\n" +
@@ -156,6 +157,16 @@ if (goodArgs)
 		goodArgs = false;
 }
 
+var cargo = false;
+
+if (goodArgs)
+{
+	if (casper.cli.has("cargo"))
+	{
+		cargo = true;
+	}
+}
+
 
 
 if (goodArgs)
@@ -168,6 +179,7 @@ if (goodArgs)
 	logMessage("INFO", "threshold: "+threshold);
 	logMessage("INFO", "filter: "+filter);
 	logMessage("INFO", "levels: "+levels);
+	logMessage("INFO", "cargo: "+cargo);	
 }
 else
 {
@@ -179,6 +191,7 @@ phantom.injectJs('login.js');
 
 var results = [];
 var seat_class = [ "Y", "C", "F" ];
+var cargo_class = ["Light", "Standard", "Heavy"];
 var pageNr = 0;
 
 
@@ -326,6 +339,126 @@ casper.then(function()
 	//this.exit(1);
 });
 
+function getPaxDemand(scriptBlock, daily_pax_demand, my_daily_pax_supply, total_daily_pax_supply)
+{
+	re = /(<chart.*\/chart>)/m;
+	xmlStr = re.exec(scriptBlock)[0];
+
+	dp = new DOMParser();
+	xDoc = dp.parseFromString(xmlStr, "text/xml");	
+
+	for (c=0; c < seat_class.length; c++)
+	{
+		cls = seat_class[c];
+			
+		// parse demand
+		dem_xp = '//*[@seriesName="Demand ' + seat_class[c] + '"]/set/@value';
+		var dem_iter = xDoc.evaluate(dem_xp, xDoc, null, XPathResult.UNORDERED_NODE_ITERATOR_TYPE, null );
+		thisNode = dem_iter.iterateNext();
+
+		i=0;
+		//console.log("Demand: "+dem_xp);
+		while (thisNode) {
+			//console.log( "\t" + thisNode.value );
+			daily_pax_demand[cls][i] = parseInt(thisNode.value);
+			daily_pax_demand.total[i] += parseInt(thisNode.value);
+
+			thisNode = dem_iter.iterateNext();
+			i++;
+		}
+		
+		// parse my supply
+		supply_xp = '//*[@seriesName="My supply ' + seat_class[c] + '"]/set/@value';
+		var supp_iter = xDoc.evaluate(supply_xp, xDoc, null, XPathResult.UNORDERED_NODE_ITERATOR_TYPE, null );
+		thisNode = supp_iter.iterateNext();
+
+		i=0;
+		//console.log("My supply "+cls+":");
+		while (thisNode) {
+			//console.log( "\t" + thisNode.value );
+			my_daily_pax_supply[cls][i] = parseInt(thisNode.value);
+			my_daily_pax_supply.total[i] += parseInt(thisNode.value);
+
+			thisNode = supp_iter.iterateNext();
+			i++;
+		}		
+	}
+
+	// parse total supply
+	tot_supp_xp = '//*[@seriesName="Total supply"]/set/@value';
+	var tot_supp_iter = xDoc.evaluate(tot_supp_xp, xDoc, null, XPathResult.UNORDERED_NODE_ITERATOR_TYPE, null );
+	var thisNode = tot_supp_iter.iterateNext();
+
+	i=0;
+	//console.log("Total supply: ");
+	while (thisNode) {
+		//console.log( "\t" + thisNode.value );
+		total_daily_pax_supply[i] = parseInt(thisNode.value);
+
+		thisNode = tot_supp_iter.iterateNext();
+		i++;
+	}
+}
+
+function getCargoDemand(scriptBlock, daily_cargo_demand, my_daily_cargo_supply, total_daily_cargo_supply)
+{
+	re = /(<chart.*\/chart>)/m;
+	xmlStr = re.exec(scriptBlock)[0];
+
+	dp = new DOMParser();
+	xDoc = dp.parseFromString(xmlStr, "text/xml");
+
+	for (c=0; c < cargo_class.length; c++)
+	{
+		cls = cargo_class[c];
+			
+		// parse demand
+		dem_xp = '//*[contains(@seriesName, "Current demand ' + cls + ' cargo")]/set/@value';
+		var dem_iter = xDoc.evaluate(dem_xp, xDoc, null, XPathResult.UNORDERED_NODE_ITERATOR_TYPE, null );
+		thisNode = dem_iter.iterateNext();
+
+		i=0;
+		//console.log("Current demand: "+dem_xp);
+		while (thisNode) {
+			//console.log( "\t" + thisNode.value );
+			daily_cargo_demand[cls][i] = parseInt(thisNode.value);
+			daily_cargo_demand.total[i] += parseInt(thisNode.value);
+
+			thisNode = dem_iter.iterateNext();
+			i++;
+		}
+		
+		// parse my supply
+		supply_xp = '//*[contains(@seriesName, "My supply ' + cls + ' cargo")]/set/@value';
+		var supp_iter = xDoc.evaluate(supply_xp, xDoc, null, XPathResult.UNORDERED_NODE_ITERATOR_TYPE, null );
+		thisNode = supp_iter.iterateNext();
+
+		i=0;
+		//console.log("My supply "+cls+":");
+		while (thisNode) {
+			my_daily_cargo_supply[cls][i] = parseInt(thisNode.value);
+			my_daily_cargo_supply.total[i] += parseInt(thisNode.value);
+
+			thisNode = supp_iter.iterateNext();
+			i++;
+		}
+		
+		// parse total supply
+		tot_supp_xp = '//*[contains(@seriesName, "Supply ' + cls + ' cargo")]/set/@value';
+		var tot_supp_iter = xDoc.evaluate(tot_supp_xp, xDoc, null, XPathResult.UNORDERED_NODE_ITERATOR_TYPE, null );
+		var thisNode = tot_supp_iter.iterateNext();
+
+		i=0;
+		//console.log("Total supply: ");
+		while (thisNode) {
+			//console.log( "\t" + thisNode.value );
+			total_daily_cargo_supply[i] = parseInt(thisNode.value);
+
+			thisNode = tot_supp_iter.iterateNext();
+			i++;
+		}		
+	}
+}
 
 
 casper.getDemandFromDestList = function (base_ICAO, destination_codes, threshold, min_demand, callback) {
@@ -334,11 +467,14 @@ casper.getDemandFromDestList = function (base_ICAO, destination_codes, threshold
 
 	casper.each(destination_codes, function(casper, dest_ICAO, index) 
 	{
-		var daily_demand = { "Y" : [0,0,0,0,0,0,0], "C" : [0,0,0,0,0,0,0], "F" : [0,0,0,0,0,0,0], "total" : [0,0,0,0,0,0,0] };
-		var total_daily_supply = [0,0,0,0,0,0,0];
-		var my_daily_supply ={ "Y" : [0,0,0,0,0,0,0], "C" : [0,0,0,0,0,0,0], "F" : [0,0,0,0,0,0,0], "total" : [0,0,0,0,0,0,0] };
-		var net_daily_supply = [0,0,0,0,0,0,0];
-			
+		var daily_pax_demand = { "Y" : [0,0,0,0,0,0,0], "C" : [0,0,0,0,0,0,0], "F" : [0,0,0,0,0,0,0], "total" : [0,0,0,0,0,0,0] };
+		var total_daily_pax_supply = [0,0,0,0,0,0,0];
+		var my_daily_pax_supply ={ "Y" : [0,0,0,0,0,0,0], "C" : [0,0,0,0,0,0,0], "F" : [0,0,0,0,0,0,0], "total" : [0,0,0,0,0,0,0] };
+
+		var daily_cargo_demand = { "Light" : [0,0,0,0,0,0,0], "Standard" : [0,0,0,0,0,0,0], "Heavy" : [0,0,0,0,0,0,0], "total" : [0,0,0,0,0,0,0] };
+		var my_daily_cargo_supply ={ "Light" : [0,0,0,0,0,0,0], "Standard" : [0,0,0,0,0,0,0], "Heavy" : [0,0,0,0,0,0,0], "total" : [0,0,0,0,0,0,0] };
+		var total_daily_cargo_supply = [0,0,0,0,0,0,0];
+		
 		if (base_ICAO == dest_ICAO)
 		{
 			return;
@@ -351,100 +487,38 @@ casper.getDemandFromDestList = function (base_ICAO, destination_codes, threshold
 				
 				//console.log(JSON.stringify(this.getElementsInfo(x('//*[starts-with(@seriesname, "Demand ")]/set')), null, 4));
 
-				dem_xpath = x('//*[@id="routePlanningData"]/div/div[2]/table[1]/thead/tr/td/script');
-				
-				scripts = this.getElementsInfo(dem_xpath);	
-				re = /(<chart.*\/chart>)/m;
-				re2 = /Demand Y/g;
-				xml = null;
-				
-				for(s=0; s < scripts.length; s++) {
-					//console.log(scripts[s].text);
-					if (re2.test(scripts[s].text))
-					{
-						xml = re.exec(scripts[s].text)[0];
-						break;
-					}
-				}
-				
-				dp = new DOMParser();
-				xDoc = dp.parseFromString(xml, "text/xml");		
-					
-				// get daily demand, and my daily supply
-				for (c=0; c < seat_class.length; c++)
+				if (!cargo)
 				{
-					cls = seat_class[c];
-						
-					// parse demand
-					dem_xp = '//*[@seriesName="Demand ' + seat_class[c] + '"]/set/@value';
-					var dem_iter = xDoc.evaluate(dem_xp, xDoc, null, XPathResult.UNORDERED_NODE_ITERATOR_TYPE, null );
-					thisNode = dem_iter.iterateNext();
-
-					i=0;
-					//console.log("Demand: "+dem_xp);
-					while (thisNode) {
-						//console.log( "\t" + thisNode.value );
-						daily_demand[cls][i] = parseInt(thisNode.value);
-						daily_demand.total[i] += parseInt(thisNode.value);
-
-						thisNode = dem_iter.iterateNext();
-						i++;
-					}
-					
-					// parse my supply
-					supply_xp = '//*[@seriesName="My supply ' + seat_class[c] + '"]/set/@value';
-					var supp_iter = xDoc.evaluate(supply_xp, xDoc, null, XPathResult.UNORDERED_NODE_ITERATOR_TYPE, null );
-					thisNode = supp_iter.iterateNext();
-
-					i=0;
-					//console.log("My supply "+cls+":");
-					while (thisNode) {
-						//console.log( "\t" + thisNode.value );
-						my_daily_supply[cls][i] = parseInt(thisNode.value);
-						my_daily_supply.total[i] += parseInt(thisNode.value);
-
-						thisNode = supp_iter.iterateNext();
-						i++;
-					}		
+					dem_xpath = x('//div[@id="chartPaxDemand"]/following-sibling::script');
+					script = this.getElementInfo(dem_xpath);
+					getPaxDemand(script.text, daily_pax_demand, my_daily_pax_supply, total_daily_pax_supply);
+					demand = parseInt(this.fetchText('#routePlanningData > div > div.borderInner > table:nth-child(2) > thead > tr:nth-child(4) > td:nth-child(2)').trim().replace(/\D+/g, ''));
+					supply = Math.max.apply(null, total_daily_pax_supply);
+					my_supply = Math.max.apply(null, my_daily_pax_supply.total);
+				}
+				else
+				{
+					cargo_demand_xpath = x('//div[@id="chartCargoDemand"]/following-sibling::script');
+					script = this.getElementInfo(cargo_demand_xpath);	
+					getCargoDemand(script.text, daily_cargo_demand, my_daily_cargo_supply, total_daily_cargo_supply);
+					demand = parseInt(this.fetchText(x('//td[contains(text(), "Estimated cargo demand")]/following-sibling::td')).trim().replace(/\D+/g, ''));
+					supply = Math.max.apply(null, total_daily_cargo_supply);
+					my_supply = Math.max.apply(null, my_daily_cargo_supply.total);
 				}
 
-				// parse total supply
-				tot_supp_xp = '//*[@seriesName="Total supply"]/set/@value';
-				var tot_supp_iter = xDoc.evaluate(tot_supp_xp, xDoc, null, XPathResult.UNORDERED_NODE_ITERATOR_TYPE, null );
-				var thisNode = tot_supp_iter.iterateNext();
-
-				i=0;
-				//console.log("Total supply: ");
-				while (thisNode) {
-					//console.log( "\t" + thisNode.value );
-					total_daily_supply[i] = parseInt(thisNode.value);
-
-					thisNode = tot_supp_iter.iterateNext();
-					i++;
-				}		
-
-
-				// average demand
-				demand = parseInt(this.fetchText('#routePlanningData > div > div.borderInner > table:nth-child(2) > thead > tr:nth-child(4) > td:nth-child(2)').trim().replace(/\D+/g, ''));
-				//demand = Math.min.apply(null, daily_demand.total);
-				
-				// max supply
-				//supply = Math.max.apply(null, net_daily_supply);
-				supply = Math.max.apply(null, total_daily_supply);
-				
-				// max my supply
-				my_supply = Math.max.apply(null, my_daily_supply.total);
 				
 				//console.log(dest_ICAO + ": " + this.fetchText('#routePlanningData > div > div.borderInner > table:nth-child(2) > thead > tr:nth-child(4) > td:nth-child(2)').trim());
 				var distance_nm = parseInt((this.fetchText(x('//*[@id="routePlanningData"]/div/div[2]/table[1]/thead/tr[3]/td[2]')).trim().split(/ /))[0]);
 				//console.log(dest_ICAO + "," + dest_IATA );
 				
-				var obj = { airport: dest_ICAO,
-							iata_code: dest_IATA,
-							distance: distance_nm,
-							demand: demand,
-							supply: supply,
-							my_supply: my_supply };
+				var obj = { 
+					airport: dest_ICAO,
+					iata_code: dest_IATA,
+					distance: distance_nm,
+					demand: demand,
+					supply: supply,
+					my_supply: my_supply,
+				};
 			
 				//console.log(JSON.stringify(obj, null, 4));
 				if ((threshold > 0 && demand - supply >= threshold) || (min_demand > 0 && demand >= min_demand))

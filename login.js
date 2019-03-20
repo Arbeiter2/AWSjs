@@ -13,7 +13,7 @@ logMessage('DEBUG', "Starting login");
 */
 casper.start('https://www.airwaysim.com/', function() {
 
-    this.loadCookies(cookieFile);
+    //this.loadCookies(cookieFile);
 	//this.waitForText('CONTACT US', 
 	this.waitForSelector('#contentUpperLogin',
 		function opened() {}, 
@@ -57,6 +57,7 @@ casper.thenOpen('https://www.airwaysim.com/Login/', function() {
 
 		logMessage('INFO', 'Sending login details');
 		this.wait(1000);
+		this.capture("C:/tmp/junk.jpg")
 	},
 
 	function checkLogin()
@@ -84,10 +85,11 @@ casper.then(function() { this.saveCookies(cookieFile); });
 var gameName = "";
 var gameImage = LoginSelectors.gameImage_pattern.replace('%GAME_ID%', gameID);
 var continueGameBtn = LoginSelectors.continueGameBtn_pattern.replace('%GAME_ID%', gameID);
-casper.thenClick('#Game_area', function()
-{
+//casper.thenClick('#Game_area', function()
+//{
 //	console.log(this.getCurrentUrl());
 //});
+casper.then(function() {
 
 //casper.thenOpen('http://www.airwaysim.com/game/', function() {
 	//console.log(this.getCurrentUrl());

@@ -5,6 +5,8 @@ import sys
 import json, simplejson, copy
 import random
 import time, re
+import logging
+
 
 #casperCommand = "/usr/local/lib/node_modules/casperjs/bin/casperjs --ssl-protocol=tlsv1"
 casperCommand = "c:/casperjs/bin/casperjs"
@@ -12,6 +14,11 @@ casperCommand = "c:/casperjs/bin/casperjs"
 scriptPath = "c:/js"
 #executable = '/bin/bash'
 executable = 'c:/windows/system32/cmd.exe'
+logFilePath = "c:/tmp/autolease.log"
+
+logging.basicConfig(filename=logFilePath, filemode='a',
+                    format='%(asctime)s - %(message)s', 
+                    level=logging.INFO)
 
 def runCommand(cmdLine):
     #print(cmdLine)
@@ -31,9 +38,10 @@ def findUnassignedAircraft(game_id):
         "--game_id={}"
         " --silent"
         ).format(casperCommand, scriptPath, game_id)
+    logging.info(command_line)
     (returncode, output) = runCommand(command_line)
+    print("findUnassignedAircraft:\n{}\n{}".format(returncode, output))
 
-    #print("findUnassignedAircraft:\n{}\n{}".format(returncode, output))
     try:
         status = json.loads(output)
     except:
@@ -46,8 +54,9 @@ def getGaps(path, game_id):
     command_line = ("{} "
         "{}/timetable_gaps.js "
         "--game_id={} --silent").format(casperCommand, scriptPath, game_id)
-    #print(command_line)
+    logging.info(command_line)
     (returncode, output) = runCommand(command_line)
+    print("getGaps:\nreturncode = {}\noutput = ###{}###".format(returncode, output))
     
 
     #print('timetable_gaps.js returned {0}'.format(returncode))
@@ -72,10 +81,12 @@ def leaseAircraft(game_id, fleet_type_id, seat_config_id, base_airport_iata,
             "--seat-config-id={} "
             "--base={} "
             "--range={} "
-            "--keyword=\\\"{}\\\"").format(casperCommand, scriptPath, game_id, fleet_type_id, seat_config_id, 
-            base_airport_iata, max_distance_nm, model)
+            "--keyword=\\\"{}\\\"").format(casperCommand, scriptPath, game_id,
+                           fleet_type_id, seat_config_id, 
+                           base_airport_iata, max_distance_nm, model)
+    logging.info(command_line)
     (returncode, output) = runCommand(command_line)
-    #print(returncode, output)
+    print("leaseAircraft:\n{}\n{}".format(returncode, output))
 
     #print('lease_aircraft.js returned {0}'.format(returncode))
     if returncode != 0:
@@ -110,8 +121,9 @@ def getUnassigned(game_id, unassigned, fleet_type_id, base_airport_iata,
                 "--aircraft-id={} " 
                 "--to={} ").format(casperCommand, scriptPath, game_id, 
                                    ac['aircraft_id'], base_airport_iata)
-            #print(command_line)
+            logging.info(command_line)
             (returncode, output) = runCommand(command_line)
+            print("getUnassigned:\n{}\n{}".format(returncode, output))
 
             res = simplejson.loads(output)
             if res['success'] != 'true':
@@ -127,7 +139,7 @@ def getUnassigned(game_id, unassigned, fleet_type_id, base_airport_iata,
     return retVal, output
     
 localtime = time.asctime( time.localtime(time.time()) )
-print ("\n---- {} ----".format(localtime))
+#print ("\n---- {} ----".format(localtime))
 
 if len(sys.argv) < 2:
     print("Bad args")
@@ -135,12 +147,12 @@ if len(sys.argv) < 2:
 
 game_id = int(sys.argv[1])
 if game_id <= 0:
-    print("Bad game_id [{}]".format(sys.argv[1]))
+    logging.error("Bad game_id [{}]".format(sys.argv[1]))
     sys.exit(1)
 
 # find unassigned frames first
 output, returncode, unassigned = findUnassignedAircraft(game_id)
-#print(output, returncode, unassigned)
+print(output, returncode, unassigned)
 
 gaps_file = "c:/tmp/gaps.json"
 useOldGapsFile = False
@@ -159,10 +171,10 @@ try:
         if returncode != 0:
             raise Exception(output)
 except (Exception) as e:
-    print("Failed to get data {}".format(str(e)))
+    logging.error("Failed to get data {}".format(str(e)))
     sys.exit(1)
 
-#print(output, returncode, gaps) 
+print(output, returncode, gaps) 
     
 seat_config_map = {
     "Boeing 737-300": 4485,
@@ -210,7 +222,7 @@ for i in indexes:
 
         #print(status, newAircraft)
         if newAircraft['error'] != '':
-            print(newAircraft['error'])
+            logging.error(newAircraft['error'])
             if newAircraft['error'] == "UAM unavailable":
                 UAMAvailable = False
                 continue
@@ -223,7 +235,7 @@ for i in indexes:
         continue
 
 
-    print("{},{},{},{}".format(timetable['name'],
+    logging.info("{},{},{},{}".format(timetable['name'],
         timetable['fleet_type_id'],
         timetable['base_airport_iata'],
         newAircraft['registration']))
@@ -237,12 +249,12 @@ for i in indexes:
         "--to-aircraft={} ").format(casperCommand, scriptPath, game_id,
         timetable['lastAircraft']['registration'],
         newAircraft['registration'])
-    #print(command_line)
+    logging.info(command_line)
     (returncode, output) = runCommand(command_line)
 
     #print('next.js returned {0}'.format(returncode))
     if returncode != 0:
-        print(output)
+        logging.info(output)
         #sys.exit(1)
 
     timetable['unassignedCount'] = timetable['unassignedCount'] - 1

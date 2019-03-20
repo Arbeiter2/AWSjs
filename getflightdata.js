@@ -10,7 +10,6 @@ function MinutesToHHMM(minutes)
 casper.getFlightData = function()
 {
 	var flightDataObj = {};
-//console.log(	this.getCurrentUrl() );
 	
 	pf = this.getCurrentUrl().match(/\/(\d+)\/?/i);
 	if (pf !== null)
@@ -87,7 +86,7 @@ casper.getFlightData = function()
 	if (sector_airports.length > 2)
 	{
 		flightDataObj.sectors = [];
-		sector_lengths = this.getElementsInfo(x("//td[text()='Total scheduled flight time:']/following-sibling::td[1]"));
+		sector_lengths = this.getElementsInfo(x("//div[contains(text(),'Total scheduled flight time:')]/following-sibling::div[1]"));
 
 		// airport codes
 		outbound = true;
@@ -121,6 +120,7 @@ casper.getFlightData = function()
 	}
 	
 	// time fields
+	this.capture("c:/tmp/screen.png")
 	flightDataObj.outbound_dep_time	= this.getFormValues(EditRouteSelectors.form).Dep1H + ':' + this.getFormValues(EditRouteSelectors.form).Dep1M;
 	flightDataObj.outbound_arr_time	= this.getHTML(EditRouteSelectors.outbound_arr_tm).trim().replace(/ h /, ':').replace(/ min.*/, '');
 	flightDataObj.outbound_length	= this.getHTML(EditRouteSelectors.outbound_flt_tm).trim().replace(/ h /, ':').replace(/ min.*/, '');
