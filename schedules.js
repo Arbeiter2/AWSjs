@@ -175,16 +175,19 @@ function () { console.log("oh fuck - can't load My Aircraft page"); }, 20000);
 							
 							// seats
 							xg = this.fetchText(ScheduleSelectors.ac_tooltip);
-//console.log(xg);
 							re1 = /Seat config: Y(\d+), C(\d+), F(\d+)/gim;
 							mxr = re1.exec(xg);
 //console.log(JSON.stringify(mxr, null, 4));
-							retVal.seats_Y = mxr[1];
-							retVal.seats_C = mxr[2];
-							retVal.seats_F = mxr[3];
+
+							if (mxr !== null)
+							{
+								retVal.seats_Y = mxr[1];
+								retVal.seats_C = mxr[2];
+								retVal.seats_F = mxr[3];
+							}
 
 							// range
-							re2 = /Nominal range: (\d+) nm/gmi;
+							re2 = /Nominal still-air range: (\d+) nm/gmi;
 							
 							mxd = re2.exec(xg);
 							retVal.range_nm = mxd[1];

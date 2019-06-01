@@ -66,6 +66,13 @@ if (casper.cli.has('keyword'))
 	}
 }
 
+var noSlots = false;
+if (casper.cli.has('no-slots'))
+{
+	noSlots = true;
+	logMessage('INFO', "Only flights with no slots");	
+}
+
 casper.then(function() {
 if (casper.cli.has('all'))// || keyword !== "")
 {
@@ -74,7 +81,7 @@ if (casper.cli.has('all'))// || keyword !== "")
 else
 {
 	// find the last flight_id added
-	casper.thenOpen('http://localhost/aws/current_flight_id_list.php' + '?game_id=' + gameID, function() {
+	casper.thenOpen('http://localhost/aws/app/v1/games/' + gameID + '/flights/all_ids' , function() {
 		DBFlightIDs = JSON.parse(this.getPageContent());
 		Deletions = flightArrayToHash(DBFlightIDs);
 	});
@@ -111,6 +118,8 @@ var pageLimit = 20;
 
 casper.each(keywordList, function(self, keyword) {
 var searchURL = 'http://www.airwaysim.com/game/Routes/Manage/?Keyword=' + keyword;
+if (noSlots)
+	searchURL += "&filterNoSlots=1"
 casper.thenOpen(searchURL,
 
 function processLinks()

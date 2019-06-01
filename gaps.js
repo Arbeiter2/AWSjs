@@ -214,7 +214,7 @@ this.capture('c:/temp/xrerror.png');
 					// we know the flight is correctly allocated
 					if (acData[1].text !== "" && parseInt(q, 10) - 1 <= 6)
 					{
-						logMessage('DEBUG', "flight " + timetableObj.firstFlight + ", day = " + q + ", a/c = " + acData[1].text);
+					//	logMessage('DEBUG', "flight " + timetableObj.firstFlight + ", day = " + q + ", a/c = " + acData[1].text);
 						
 						// record the a/c reg flying that specific day
 						var reg = acData[1].text;
